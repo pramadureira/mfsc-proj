@@ -5,7 +5,10 @@
 --
 -- Mini Project 1
 --
--- Group Members:  <your names and student numbers here>
+-- Group Members:
+--   Afonso Osório - 202108700
+--   Pedro Angélico - 202108866
+--   Sofia Pinto - 202108682
 --
 --===============================================
 
@@ -63,6 +66,32 @@ pred noUserboxChange {
   Mail.uboxes' = Mail.uboxes
 }
 
+
+------------------
+-- Other Predicates
+------------------
+fun msgMailbox [] : Message -> one Mailbox { ~messages }
+
+pred isFresh [m: Message]  {
+	m.status = Fresh
+}
+
+pred isActive [m: Message]  {
+	m.status = Active
+}
+
+pred isExternal [m: Message]  {
+	m.status = External
+}
+
+pred isPurged [m: Message]  {
+	m.status = Purged
+}
+
+pred existsMailbox [mb: Mailbox]  {
+	mb in (Mail.inbox + Mail.drafts + Mail.sent + Mail.trash + Mail.uboxes)
+}
+
 -------------
 -- Operators
 -------------
@@ -74,13 +103,52 @@ pred noUserboxChange {
 
 -- createMessage 
 pred createMessage [m: Message] {
+  -- Preconditions:
+  --   m is not created already
+  --   status of m is Fresh
+  no m.msgMailbox
+  isFresh[m]
+ 
+  -- Postconditions:
+  --   status of m' is Active
+  --   m is in the drafts mailbox
+  isActive[m']
+  after m.msgMailbox = Mail.drafts
 
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message - m] 
+  noMessageChange [Mailbox - Mail.drafts] 
+  noUserboxChange
 
   Mail.op' = CM
 }
 
 -- moveMessage
 pred moveMessage [m: Message, mb: Mailbox] {
+  -- Preconditions:
+  --   mb cannot be trash
+  --   mb exists in the system
+  --   m cannot be already in mb
+  --   status of m is Active
+  mb != Mail.trash
+  existsMailbox [mb]
+  m not in mb.messages
+  isActive[m]
+  
+  -- Postconditions:
+  --   m' is in mb and no other mailbox
+  after m.msgMailbox = mb
+
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message] 
+  noMessageChange [Mailbox - (mb + m.msgMailbox)] 
+  noUserboxChange
 
   Mail.op' = MM
 }
@@ -88,21 +156,69 @@ pred moveMessage [m: Message, mb: Mailbox] {
 
 -- deleteMessage
 pred deleteMessage [m: Message] {
+  -- Preconditions:
+  --   m cannot be already in trash
+  --   status of m is Active
+  m.msgMailbox != Mail.trash
+  isActive[m]
+  
+  -- Postconditions:
+  --   m' is in trash and no other mailbox
+  after m.msgMailbox = Mail.trash
 
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message] 
+  noMessageChange [Mailbox - (Mail.trash + m.msgMailbox)] 
+  noUserboxChange
 
   Mail.op' = DM
 }
 
 -- sendMessage
 pred sendMessage [m: Message] {
+  -- Preconditions:
+  --   m is in drafts
+  --   status of m is Active
+  m.msgMailbox = Mail.drafts
+  isActive[m]
+  
+  -- Postconditions:
+  --   m' is in sent and no other mailbox
+  after m.msgMailbox = Mail.sent
 
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message] 
+  noMessageChange [Mailbox - (Mail.sent + Mail.drafts)] 
+  noUserboxChange
 
   Mail.op' = SM
 }
 
 -- getMessage 
 pred getMessage [m: Message] {
+  -- Preconditions:
+  --   status of m is external
+  isExternal[m]
+ 
+  -- Postconditions:
+  --   status of m' is active
+  --   m' is in inbox and no other mailbox
+  isActive[m']
+  after m.msgMailbox = Mail.inbox
 
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message - m]
+  noMessageChange [Mailbox - Mail.inbox] 
+  noUserboxChange
 
   Mail.op' = GM
 }
@@ -114,7 +230,23 @@ pred getMessage [m: Message] {
 */
 -- emptyTrash
 pred emptyTrash {
+  -- Preconditions:
+  --   trash has messages
+  some Mail.trash.messages
+  
+  -- Postconditions:
+  --   status of all messages in trash transitions to purged
+  --   trash mailbox is empty
+  all m: Mail.trash.messages | after m.status = Purged
+  after no Mail.trash.messages
 
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message - Mail.trash.messages]
+  noMessageChange [Mailbox - Mail.trash] 
+  noUserboxChange
 
   Mail.op' = ET
 }
@@ -122,6 +254,21 @@ pred emptyTrash {
 
 -- createMailbox
 pred createMailbox [mb: Mailbox] {
+  -- Preconditions:
+  --   mb is not in the system
+  not existsMailbox [mb]
+
+  -- Postconditions:
+  --   mb is in uboxes
+  after mb in Mail.uboxes
+
+  -- Frame
+  --   no changes to the state of other messages,
+  --   to the set of messages in the remaining mailboxes, 
+  --   or to the user-created mailboxes
+  noStatusChange [Message]
+  noMessageChange [Mailbox] 
+  noUserboxChange
 
 
   Mail.op' = CMB
@@ -136,8 +283,10 @@ pred deleteMailbox [mb: Mailbox] {
 
 -- noOp
 pred noOp {
-
-
+  noStatusChange [Message] 
+  noMessageChange [Mailbox] 
+  noUserboxChange
+  
   Mail.op' = none 
 }
 
