@@ -276,6 +276,24 @@ pred createMailbox [mb: Mailbox] {
 
 -- deleteMailbox
 pred deleteMailbox [mb: Mailbox] {
+  -- Preconditions:
+  -- mb in uboxes
+  mb in Mail.uboxes
+
+  -- Postconditions:
+  -- all m in mb are purged
+  -- mb is removed from the system
+  -- all m: mb.messages | m'.status = Purged -- é a mesma coisa?
+  after all m: mb.messages | isPurged [m]
+
+  -- Mail.uboxes' = Mail.uboxes - mb -- é a mesma coisa?
+  after Mail.uboxes = Mail.uboxes - mb
+
+  -- Frame
+  -- no change to the state of messages not in that mb,
+  -- to the set of messages in the remaining mailboxes, 
+  noStatusChange [Message - mb.messages]
+  noMessageChange [Mailbox - mb]
 
 
   Mail.op' = DMB
@@ -296,15 +314,18 @@ pred noOp {
 
 pred Init {
   -- There exist no active or purged messages anywhere
+  no m: Message | isActive [m] or isPurged [m]
 
 
   -- The system mailboxes are all distinct
-
+  no inbox & drafts & trash & sent & uboxes
 
   -- All mailboxes anywhere are empty
+  all mb: Mailbox | no mb.messages
 
 
   -- The set of user-created mailboxes is empty
+  no Mail.uboxes
 
 
   -- [Keep this tracking constraint intact]
@@ -335,7 +356,6 @@ pred Trans {
   or 
   noOp
 }
-
 
 ----------
 -- Traces
