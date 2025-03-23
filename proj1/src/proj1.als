@@ -113,7 +113,8 @@ pred createMessage [m: Message] {
   --   status of m' is Active
   --   m is in the drafts mailbox
   after isActive[m]
-  after m.msgMailbox = Mail.drafts
+  --after m.msgMailbox = Mail.drafts
+  Mail.drafts.messages' = Mail.drafts.messages + m
 
   -- Frame
   --   no changes to the state of other messages,
@@ -140,7 +141,9 @@ pred moveMessage [m: Message, mb: Mailbox] {
   
   -- Postconditions:
   --   m' is in mb and no other mailbox
-  after m.msgMailbox = mb
+  --after m.msgMailbox = mb
+  mb.messages' = mb.messages + m
+  m.msgMailbox.messages' = m.msgMailbox.messages - m
 
   -- Frame
   --   no changes to the state of other messages,
@@ -165,6 +168,7 @@ pred deleteMessage [m: Message] {
   -- Postconditions:
   --   m' is in trash and no other mailbox
   after m.msgMailbox = Mail.trash
+  m.msgMailbox.messages' = m.msgMailbox.messages - m
 
   -- Frame
   --   no changes to the state of other messages,
@@ -187,7 +191,8 @@ pred sendMessage [m: Message] {
   
   -- Postconditions:
   --   m' is in sent and no other mailbox
-  after m.msgMailbox = Mail.sent
+  --after m.msgMailbox = Mail.sent
+  Mail.sent.messages' = Mail.sent.messages + m
 
   -- Frame
   --   no changes to the state of other messages,
@@ -210,7 +215,8 @@ pred getMessage [m: Message] {
   --   status of m' is active
   --   m' is in inbox and no other mailbox
   after isActive[m]
-  after m.msgMailbox = Mail.inbox
+  --after m.msgMailbox = Mail.inbox
+  Mail.inbox.messages' = Mail.inbox.messages + m
 
   -- Frame
   --   no changes to the state of other messages,
@@ -283,7 +289,8 @@ pred deleteMailbox [mb: Mailbox] {
   -- all m in mb are purged
   -- mb is removed from the system
   -- all m: mb.messages | m'.status = Purged -- é a mesma coisa?
-  after all m: mb.messages | isPurged [m]
+   all m: mb.messages | after isPurged [m]
+   mb.messages' = none
 
   -- Mail.uboxes' = Mail.uboxes - mb -- é a mesma coisa? não
   --after Mail.uboxes = Mail.uboxes - mb
@@ -370,7 +377,7 @@ fact System {
 }
 
 
---run {} for 10
+run {} for 10
 
 ---------------------
 -- Sanity check runs
@@ -386,18 +393,18 @@ pred p2 {
   -- The inbox contains more than one message at some point
   eventually some mb: Mailbox | #mb.messages > 1
 }
-run p2 for 1 but 8 Object
+--run p2 for 1 but 8 Object
 
 pred p3 {
   -- The trash mailbox eventually contains messages and
   -- becomes empty some time later
-
+  eventually (some Mail.trash.messages and eventually Mail.op = ET)
 }
 --run p3 for 1 but 8 Object
 
 pred p4 {
   -- Eventually some message in the drafts mailbox (it is already there) moves to the sent mailbox
-
+  eventually (some m: Mail.drafts.messages | eventually m in Mail.sent.messages)
 }
 --run p4 for 1 but 8 Object
 
