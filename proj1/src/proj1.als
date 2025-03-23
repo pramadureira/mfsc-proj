@@ -88,10 +88,6 @@ pred isPurged [m: Message]  {
 	m.status = Purged
 }
 
-pred isStatusAfter [m: Message, s: Status] {
-	m.status' = s
-}
-
 pred existsMailbox [mb: Mailbox]  {
 	mb in (Mail.inbox + Mail.drafts + Mail.sent + Mail.trash + Mail.uboxes)
 }
@@ -116,7 +112,7 @@ pred createMessage [m: Message] {
   -- Postconditions:
   --   status of m' is Active
   --   m is in the drafts mailbox
-  isStatusAfter[m, Active]
+  after isActive[m]
   after m.msgMailbox = Mail.drafts
 
   -- Frame
@@ -213,7 +209,7 @@ pred getMessage [m: Message] {
   -- Postconditions:
   --   status of m' is active
   --   m' is in inbox and no other mailbox
-  isStatusAfter[m, Active]
+  after isActive[m]
   after m.msgMailbox = Mail.inbox
 
   -- Frame
