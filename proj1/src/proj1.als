@@ -384,13 +384,13 @@ pred p1 {
   -- Eventually a message becomes active
   eventually some m: Message | isActive[m]
 }
-run p1 for 1 but 8 Object
+--run p1 for 1 but 8 Object
 
 pred p2 {
   -- The inbox contains more than one message at some point
-
+  eventually some mb: Mailbox | #mb.messages > 1
 }
---run p2 for 1 but 8 Object
+run p2 for 1 but 8 Object
 
 pred p3 {
   -- The trash mailbox eventually contains messages and
