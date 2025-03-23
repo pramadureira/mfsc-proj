@@ -88,6 +88,10 @@ pred isPurged [m: Message]  {
 	m.status = Purged
 }
 
+pred isStatusAfter [m: Message, s: Status] {
+	m.status' = s
+}
+
 pred existsMailbox [mb: Mailbox]  {
 	mb in (Mail.inbox + Mail.drafts + Mail.sent + Mail.trash + Mail.uboxes)
 }
@@ -112,7 +116,7 @@ pred createMessage [m: Message] {
   -- Postconditions:
   --   status of m' is Active
   --   m is in the drafts mailbox
-  isActive[m']
+  isStatusAfter[m, Active]
   after m.msgMailbox = Mail.drafts
 
   -- Frame
@@ -209,7 +213,7 @@ pred getMessage [m: Message] {
   -- Postconditions:
   --   status of m' is active
   --   m' is in inbox and no other mailbox
-  isActive[m']
+  isStatusAfter[m, Active]
   after m.msgMailbox = Mail.inbox
 
   -- Frame
@@ -260,7 +264,7 @@ pred createMailbox [mb: Mailbox] {
 
   -- Postconditions:
   --   mb is in uboxes
-  after mb in Mail.uboxes
+  Mail.uboxes' = Mail.uboxes + mb
 
   -- Frame
   --   no changes to the state of other messages,
@@ -268,7 +272,6 @@ pred createMailbox [mb: Mailbox] {
   --   or to the user-created mailboxes
   noStatusChange [Message]
   noMessageChange [Mailbox] 
-  noUserboxChange
 
 
   Mail.op' = CMB
@@ -286,8 +289,9 @@ pred deleteMailbox [mb: Mailbox] {
   -- all m: mb.messages | m'.status = Purged -- é a mesma coisa?
   after all m: mb.messages | isPurged [m]
 
-  -- Mail.uboxes' = Mail.uboxes - mb -- é a mesma coisa?
-  after Mail.uboxes = Mail.uboxes - mb
+  -- Mail.uboxes' = Mail.uboxes - mb -- é a mesma coisa? não
+  --after Mail.uboxes = Mail.uboxes - mb
+  Mail.uboxes' = Mail.uboxes - mb
 
   -- Frame
   -- no change to the state of messages not in that mb,
@@ -318,7 +322,8 @@ pred Init {
 
 
   -- The system mailboxes are all distinct
-  no inbox & drafts & trash & sent & uboxes
+  disj [sent, drafts, inbox, trash]
+
 
   -- All mailboxes anywhere are empty
   all mb: Mailbox | no mb.messages
@@ -369,7 +374,7 @@ fact System {
 }
 
 
-run {} for 10
+--run {} for 10
 
 ---------------------
 -- Sanity check runs
@@ -377,9 +382,9 @@ run {} for 10
 
 pred p1 {
   -- Eventually a message becomes active
-
+  eventually some m: Message | isActive[m]
 }
---run p1 for 1 but 8 Object
+run p1 for 1 but 8 Object
 
 pred p2 {
   -- The inbox contains more than one message at some point
