@@ -424,7 +424,7 @@ pred p7 {
   -- Eventually some user mailbox gets deleted
 
 }
-run p7 for 1 but 8 Object
+--run p7 for 1 but 8 Object
 
 pred p8 {
   -- Eventually the inbox has messages
@@ -522,7 +522,7 @@ assert v11 {
 
 assert v12 {
 -- The trash mailbox starts empty and stays so until a message is deleted, if any
-
+	(after Mail.op = DM) releases Mail.trash.messages = none
 }
 --check v12 for 5 but 11 Object
 
@@ -539,9 +539,10 @@ assert v14 {
 }
 --check v14 for 5 but 11 Object
 
+-- TODO: maybe could be done more efficiently?
 assert v15 {
 -- Every message in a user-created mailbox ultimately comes from a system mailbox.
-
+	always all m: Mail.uboxes.messages | once m in sboxes.messages
 }
 --check v15 for 5 but 11 Object
 
