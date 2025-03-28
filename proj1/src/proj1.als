@@ -100,6 +100,25 @@ pred existsMailbox [mb: Mailbox]  {
    It is there to track the applied operators in each trace  
 */
 
+pred genericMove[m: Message, mb: Mailbox] {
+	-- Preconditions:
+	--   m is active
+	isActive[m]
+
+	-- Postconditions:
+	--   m is removed from its current mailbox
+	--   m is added to the desired mailbox
+	m.msgMailbox.messages' = m.msgMailbox.messages - m
+	mb.messages' = mb.messages + m
+
+	-- No messages change status
+	-- Only the source and destination mailboxes are altered
+	-- No mailboxes are added or removed
+	noStatusChange[Message]
+	noMessageChange[Mailbox - (mb + m.msgMailbox)]
+	noUserboxChange
+}
+
 
 -- createMessage 
 pred createMessage [m: Message] {
@@ -424,7 +443,7 @@ pred p7 {
   -- Eventually some user mailbox gets deleted
 
 }
-run p7 for 1 but 8 Object
+--run p7 for 1 but 8 Object
 
 pred p8 {
   -- Eventually the inbox has messages
