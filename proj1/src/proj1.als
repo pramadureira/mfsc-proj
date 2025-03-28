@@ -358,7 +358,7 @@ fact System {
 }
 
 
-run {} for 10
+--run {} for 10
 
 ---------------------
 -- Sanity check runs
@@ -443,9 +443,9 @@ assert v1 {
  
 assert v2 {
 --  Inactive messages are in no mailboxes at all
-
+	always all m: status.(Status - Active) | m.msgMailbox = none
 }
---check v2 for 5 but 11 Object
+check v2 for 5 but 11 Object
 
 assert v3 {
 -- Each of the user-created mailboxes differs from the predefined mailboxes
