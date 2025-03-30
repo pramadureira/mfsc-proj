@@ -89,7 +89,7 @@ pred isPurged [m: Message]  {
 }
 
 pred existsMailbox [mb: Mailbox]  {
-	mb in (Mail.inbox + Mail.drafts + Mail.sent + Mail.trash + Mail.uboxes)
+	mb in (sboxes + Mail.uboxes)
 }
 
 -------------
@@ -99,6 +99,29 @@ pred existsMailbox [mb: Mailbox]  {
 /* Leave the constraint on Mail.op' in the operators.
    It is there to track the applied operators in each trace  
 */
+
+pred genericMove[m: Message, mb: Mailbox] {
+	-- Preconditions:
+	--   m is active
+	--   mb exists in the system
+	--   m is not already in mb
+	isActive[m]
+	existsMailbox[mb]
+	m.msgMailbox != mb
+
+	-- Postconditions:
+	--   m is removed from its current mailbox
+	--   m is added to the desired mailbox
+	m.msgMailbox.messages' = m.msgMailbox.messages - m
+	mb.messages' = mb.messages + m
+
+	-- No messages change status
+	-- Only the source and destination mailboxes are altered
+	-- No mailboxes are added or removed
+	noStatusChange[Message]
+	noMessageChange[Mailbox - (mb + m.msgMailbox)]
+	noUserboxChange
+}
 
 
 -- createMessage 
@@ -131,27 +154,9 @@ pred createMessage [m: Message] {
 pred moveMessage [m: Message, mb: Mailbox] {
   -- Preconditions:
   --   mb cannot be trash
-  --   mb exists in the system
-  --   m cannot be already in mb
-  --   status of m is Active
   mb != Mail.trash
-  existsMailbox [mb]
-  m not in mb.messages
-  isActive[m]
   
-  -- Postconditions:
-  --   m' is in mb and no other mailbox
-  --after m.msgMailbox = mb
-  mb.messages' = mb.messages + m
-  m.msgMailbox.messages' = m.msgMailbox.messages - m
-
-  -- Frame
-  --   no changes to the state of other messages,
-  --   to the set of messages in the remaining mailboxes, 
-  --   or to the user-created mailboxes
-  noStatusChange [Message] 
-  noMessageChange [Mailbox - (mb + m.msgMailbox)] 
-  noUserboxChange
+  genericMove[m, mb]
 
   Mail.op' = MM
 }
@@ -161,22 +166,10 @@ pred moveMessage [m: Message, mb: Mailbox] {
 pred deleteMessage [m: Message] {
   -- Preconditions:
   --   m cannot be already in trash
-  --   status of m is Active
   m.msgMailbox != Mail.trash
-  isActive[m]
   
   -- Postconditions:
-  --   m' is in trash and no other mailbox
-  after m.msgMailbox = Mail.trash
-  m.msgMailbox.messages' = m.msgMailbox.messages - m
-
-  -- Frame
-  --   no changes to the state of other messages,
-  --   to the set of messages in the remaining mailboxes, 
-  --   or to the user-created mailboxes
-  noStatusChange [Message] 
-  noMessageChange [Mailbox - (Mail.trash + m.msgMailbox)] 
-  noUserboxChange
+  genericMove[m, Mail.trash]
 
   Mail.op' = DM
 }
@@ -185,22 +178,10 @@ pred deleteMessage [m: Message] {
 pred sendMessage [m: Message] {
   -- Preconditions:
   --   m is in drafts
-  --   status of m is Active
   m.msgMailbox = Mail.drafts
-  isActive[m]
   
   -- Postconditions:
-  --   m' is in sent and no other mailbox
-  --after m.msgMailbox = Mail.sent
-  Mail.sent.messages' = Mail.sent.messages + m
-
-  -- Frame
-  --   no changes to the state of other messages,
-  --   to the set of messages in the remaining mailboxes, 
-  --   or to the user-created mailboxes
-  noStatusChange [Message] 
-  noMessageChange [Mailbox - (Mail.sent + Mail.drafts)] 
-  noUserboxChange
+  genericMove[m, Mail.sent]
 
   Mail.op' = SM
 }
@@ -377,7 +358,7 @@ fact System {
 }
 
 
-run {} for 10
+--run {} for 10
 
 ---------------------
 -- Sanity check runs
@@ -462,9 +443,9 @@ assert v1 {
  
 assert v2 {
 --  Inactive messages are in no mailboxes at all
-
+	always all m: status.(Status - Active) | m.msgMailbox = none
 }
---check v2 for 5 but 11 Object
+check v2 for 5 but 11 Object
 
 assert v3 {
 -- Each of the user-created mailboxes differs from the predefined mailboxes
