@@ -551,7 +551,7 @@ assert i1 {
 -- A message that was removed from the inbox may later reappear there.
 -- Negated into:
 assert i2 {
-
+	no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
 }
 --check i2 for 5 but 11 Object
 
