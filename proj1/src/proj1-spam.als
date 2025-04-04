@@ -343,7 +343,7 @@ pred Init {
 
 
   -- The system mailboxes are all distinct
-  disj [sent, drafts, inbox, trash]
+  disj [sent, drafts, inbox, trash, spam]
 
 
   -- All mailboxes anywhere are empty
