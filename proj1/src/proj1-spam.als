@@ -42,7 +42,7 @@ one sig Mail {
   -- user mailboxes
   var uboxes: set Mailbox,
 
-  address: one Address,
+  userAddress: one Address,
 
   var op: lone Operator -- added for tracking purposes only
 }
@@ -74,6 +74,11 @@ pred noMessageChange [MB: set Mailbox] {
 -- the set of user-defined mailboxes is unchanged from a state to the next
 pred noUserboxChange {
   Mail.uboxes' = Mail.uboxes
+}
+
+-- the set of addresses marked as spam is unchanged from a state to the next
+pred noSpamFilterChange {
+	spammers' = spammers
 }
 
 
@@ -295,6 +300,28 @@ pred deleteMailbox [mb: Mailbox] {
 
 
   Mail.op' = DMB
+}
+
+pred addToFilter [add: Address] {
+  -- Preconditions:
+  -- add not in spammers
+  -- add not own address
+  add not in SpamFilter.spammers
+  add != Mail.userAddress
+
+  -- Postconditions:
+  -- add added to spamfilter
+  -- existing messages from add are moved to spam, except those that are in the trash
+  SpamFilter.spammers' = SpamFilter.spammers' + add
+  msgMailbox' = msgMailbox ++ ((status.Active & address.add) - Mail.trash.messages) -> Mail.spam
+
+  -- Frame
+  -- no changes to the set of user mailboxes
+  -- no changes to the status of messages
+  noStatusChange [Message]
+  noUserboxChange
+
+  Mail.op' = AS
 }
 
 -- noOp
