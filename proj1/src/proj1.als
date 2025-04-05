@@ -358,7 +358,7 @@ fact System {
 }
 
 
-run {} for 10
+--run {} for 10
 
 ---------------------
 -- Sanity check runs
@@ -441,13 +441,12 @@ pred p10 {
 --------------------
 
 assert v1 {
---  Every active message is in one of the app's mailboxes 
-
+  --  Every active message is in one of the app's mailboxes 
+  always all m: Message | isActive[m] => m in (sboxes.messages + Mail.uboxes.messages)
 }
 --check v1 for 5 but 11 Object
 
 
-// TODO: not fully verified yet
 assert v2 {
 --  Inactive messages are in no mailboxes at all
 	--always all m: status.(Status - Active) | m.msgMailbox = none
@@ -457,13 +456,13 @@ assert v2 {
 
 assert v3 {
 -- Each of the user-created mailboxes differs from the predefined mailboxes
-
+  always no Mail.uboxes & sboxes
 }
 --check v3 for 5 but 11 Object
 
 assert v4 {
 -- Every active message was once external or fresh.
-
+  always all m: Message | isActive[m] => once (isExternal[m] or isFresh[m])
 }
 --check v4 for 5 but 11 Object
 
@@ -487,7 +486,7 @@ assert v7 {
 
 assert v8 {
 -- The app's mailboxes contain only active messages
-
+  always all m: (sboxes.messages + Mail.uboxes.messages) | isActive[m]
 }
 --check v8 for 5 but 11 Object
 
@@ -499,19 +498,19 @@ assert v9 {
 
 assert v10 {
 -- A purged message is purged forever
-
+  always all m: Message |  once isPurged[m] => always isPurged[m]
 }
 --check v10 for 5 but 11 Object
 
 assert v11 {
 -- No messages in the system can ever (re)acquire External status
-
+  always all m:Message |  once not isExternal[m] => always not isExternal[m]
 }
 --check v11 for 5 but 11 Object
 
 assert v12 {
 -- The trash mailbox starts empty and stays so until a message is deleted, if any
-	(after Mail.op = DM) releases Mail.trash.messages = none
+    (after Mail.op = DM) releases (no Mail.trash.messages)
 }
 --check v12 for 5 but 11 Object
 
@@ -528,10 +527,9 @@ assert v14 {
 }
 --check v14 for 5 but 11 Object
 
--- TODO: maybe could be done more efficiently?
 assert v15 {
 -- Every message in a user-created mailbox ultimately comes from a system mailbox.
-	always all m: Mail.uboxes.messages | once m in sboxes.messages
+    always all m: Mail.uboxes.messages | once m in sboxes.messages
 }
 --check v15 for 5 but 11 Object
 
@@ -550,7 +548,8 @@ assert v16 {
 -- It is possible for messages to stay in the inbox indefinitely
 -- Negated into: 
 assert i1 {
-
+  -- There is no message that is always in the inbox
+  always (no m: Mail.inbox.messages | always m in Mail.inbox.messages)
 }
 --check i1 for 5 but 11 Object
 
