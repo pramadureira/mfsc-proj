@@ -580,6 +580,6 @@ assert i3 {
 assert i4 {
   no m: Message | isExternal[m] => some (m & (Mail.uboxes + sboxes).messages)
 }
-check i4 for 5 but 11 Object
+--check i4 for 5 but 11 Object
 
 
