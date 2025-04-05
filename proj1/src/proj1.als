@@ -468,21 +468,23 @@ assert v4 {
 
 assert v5 {
 -- Every user-created mailbox starts empty.
+  always all mb: Mail.uboxes | (before Mail.uboxes = Mail.uboxes - mb) => no mb.messages
 
 }
 --check v5 for 5 but 11 Object
 
 assert v6 {
 -- User-created mailboxes stay in the system indefinitely or until they are deleted.
-
+  always all mb: Mail.uboxes | (after Mail.uboxes = Mail.uboxes - mb) releases (mb in Mail.uboxes)
 }
 --check v6 for 5 but 11 Object
 
 assert v7 {
 -- Every sent message is sent from the draft mailbox 
+  always all m: Mail.sent | once Mail.drafts = Mail.drafts + m
 
 }
---check v7 for 5 but 11 Object
+-- check v7 for 5 but 11 Object
 
 assert v8 {
 -- The app's mailboxes contain only active messages
@@ -517,12 +519,16 @@ assert v12 {
 assert v13 {
 -- To purge an active message one must first delete the message 
 -- or delete the mailbox it is in.
+  always all m: Message | isPurged[m] => (once Message = Message - m) or (no messages.m & (sboxes + Mail.uboxes))
 
 }
 --check v13 for 5 but 11 Object
 
 assert v14 {
 -- Every message in the trash mailbox had been previously deleted
+  always all m: Mail.trash.messages |
+    once ((Mail.trash.messages = Mail.trash.messages - m) and
+    (m in (sboxes.messages + Mail.uboxes.messages)))
 
 }
 --check v14 for 5 but 11 Object
@@ -536,7 +542,8 @@ assert v15 {
 assert v16 {
 -- A purged message that was never in the trash mailbox must have been 
 -- in a user mailbox that was later deleted
-
+  always all m: Message | (((isPurged[m]) and (historically m not in Mail.trash.messages)) => 
+  ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))
 }
 --check v16 for 5 but 11 Object
 
@@ -556,22 +563,23 @@ assert i1 {
 -- A message that was removed from the inbox may later reappear there.
 -- Negated into:
 assert i2 {
-	no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
+  no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
 }
 --check i2 for 5 but 11 Object
 
 -- A deleted message may go back to the mailbox it was deleted from.
 -- Negated into:
 assert i3 {
-
+  -- If a message is deleted, it never goes back to the mailbox it was deleted from.
+  no m: Message | (after m in Mail.trash.messages) => (eventually m in messages.m.messages)
 }
 --check i3 for 5 but 11 Object
 
 -- Some external messages may never be received
 -- Negated into:
 assert i4 {
-
+  no m: Message | isExternal[m] => some (m & (Mail.uboxes + sboxes).messages)
 }
---check i4 for 5 but 11 Object
+check i4 for 5 but 11 Object
 
 
