@@ -391,40 +391,46 @@ pred p4 {
 
 pred p5 {
   -- Eventually there is a user mailbox with messages in it
-
+  eventually some Mail.uboxes.messages
 }
 --run p5 for 1 but 8 Object 
 
 pred p6 {
   -- Eventually the inbox gets two messages in a row from outside
-
+  eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
+    isExternal[m1] and isExternal[m2] and m1 != m2 and
+    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))
 }
 --run p6 for 1 but 8 Object
 
 pred p7 {
   -- Eventually some user mailbox gets deleted
-
+  eventually (some u: Mail.uboxes | eventually Mail.uboxes = Mail.uboxes - u)
 }
 --run p7 for 1 but 8 Object
 
+
 pred p8 {
   -- Eventually the inbox has messages
-
-  -- Every message in the inbox at any point is eventually removed 
-
+  eventually some Mail.inbox.messages
+  -- Every message in the inbox at any point is eventually removed
+  all m: Mail.inbox.messages | eventually m not in Mail.inbox.messages
 }
 --run p8 for 1 but 8 Object
 
+
 pred p9 {
   -- The trash mail box is emptied of its messages eventually
-
+  eventually some Mail.trash.messages
+  eventually no Mail.trash.messages
 }
 --run p9 for 1 but 8 Object
 
 pred p10 {
   -- Eventually an external message arrives and 
   -- after that nothing happens anymore
-
+  eventually (one m: Message | isExternal[m])
+  after always noOp
 }
 --run p10 for 1 but 8 Object
 
