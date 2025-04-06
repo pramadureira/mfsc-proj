@@ -222,7 +222,7 @@ pred getMessage [m: Message] {
   --   to the set of messages in the remaining mailboxes, 
   --   or to the user-created mailboxes
   noStatusChange [Message - m]
-  noMessageChange [Mailbox - Mail.inbox] 
+  noMessageChange [Mailbox - (Mail.inbox + Mail.spam)] 
   noUserboxChange
   noSpamFilterChange
 
@@ -605,7 +605,7 @@ assert v9 {
 -- Every received message passes through the inbox
   always all m: Message | getMessage[m] => m in Mail.inbox.messages'
 }
---check v9 for 5 but 8 Object, 4 Address
+--check v9 for 5 but 9 Object, 4 Address
 
 assert v10 {
 -- A purged message is purged forever
