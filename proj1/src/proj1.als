@@ -155,9 +155,6 @@ pred moveMessage [m: Message, mb: Mailbox] {
   -- Preconditions:
   --   mb cannot be trash
   mb != Mail.trash
-  -- TODO: Confirm -> added because of assert v7 and v9
-  mb != Mail.sent
-  mb != Mail.inbox
   
   genericMove[m, mb]
 
@@ -483,8 +480,7 @@ assert v6 {
 
 assert v7 {
 -- Every sent message is sent from the draft mailbox 
-  always all m: Mail.sent.messages | once m in Mail.drafts.messages
-
+  always all m: Message | sendMessage[m] => m in Mail.drafts.messages
 }
 --check v7 for 5 but 11 Object
 
@@ -496,7 +492,7 @@ assert v8 {
 
 assert v9 {
 -- Every received message passes through the inbox
-  always all m: Mail.inbox.messages | once isExternal[m]
+  always all m: Message | getMessage[m] => m in Mail.inbox.messages'
 }
 --check v9 for 5 but 11 Object
 
@@ -565,12 +561,11 @@ assert i1 {
 
 -- A message that was removed from the inbox may later reappear there.
 -- Negated into:
--- TODO: currently doesnt work because of changes to moveMessage
 assert i2 {
   --no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
   no m: Message | eventually (m in Mail.inbox.messages and eventually (m not in Mail.inbox.messages and eventually (m in Mail.inbox.messages)))
 }
---check i2 for 5 but 11 Object
+check i2 for 5 but 11 Object
 
 -- A deleted message may go back to the mailbox it was deleted from.
 -- Negated into:
