@@ -136,6 +136,7 @@ pred genericMove[m: Message, mb: Mailbox] {
 	noStatusChange[Message]
 	noMessageChange[Mailbox - (mb + m.msgMailbox)]
 	noUserboxChange
+  noSpamFilterChange
 }
 
 
@@ -161,6 +162,7 @@ pred createMessage [m: Message] {
   noStatusChange [Message - m] 
   noMessageChange [Mailbox - Mail.drafts] 
   noUserboxChange
+  noSpamFilterChange
 
   Mail.op' = CM
 }
@@ -222,6 +224,7 @@ pred getMessage [m: Message] {
   noStatusChange [Message - m]
   noMessageChange [Mailbox - Mail.inbox] 
   noUserboxChange
+  noSpamFilterChange
 
   Mail.op' = GM
 }
@@ -250,6 +253,7 @@ pred emptyTrash {
   noStatusChange [Message - Mail.trash.messages]
   noMessageChange [Mailbox - Mail.trash] 
   noUserboxChange
+  noSpamFilterChange
 
   Mail.op' = ET
 }
@@ -271,6 +275,7 @@ pred createMailbox [mb: Mailbox] {
   --   or to the user-created mailboxes
   noStatusChange [Message]
   noMessageChange [Mailbox] 
+  noSpamFilterChange
 
 
   Mail.op' = CMB
@@ -298,9 +303,52 @@ pred deleteMailbox [mb: Mailbox] {
   -- to the set of messages in the remaining mailboxes, 
   noStatusChange [Message - mb.messages]
   noMessageChange [Mailbox - mb]
+  noSpamFilterChange
 
 
   Mail.op' = DMB
+}
+
+pred addToFilter [add: Address] {
+  -- Preconditions:
+  -- add not in spammers
+  -- add not own address
+  add not in SpamFilter.spammers
+  add != Mail.userAddress
+
+  -- Postconditions:
+  -- add added to spamfilter
+  -- existing messages from add are moved to spam, except those that are in the trash
+  SpamFilter.spammers' = SpamFilter.spammers + add
+  msgMailbox' = msgMailbox ++ ((status.Active & address.add) - Mail.trash.messages) -> Mail.spam
+
+  -- Frame
+  -- no changes to the set of user mailboxes
+  -- no changes to the status of messages
+  noStatusChange [Message]
+  noUserboxChange
+
+  Mail.op' = AS
+}
+
+pred removeFromFilter [add: Address] {
+  -- Preconditions:
+  -- add in spammers
+  -- add not own address
+  add in SpamFilter.spammers
+  add != Mail.userAddress
+
+  -- Postconditions:
+  -- add removed from spamfilter
+  SpamFilter.spammers' = SpamFilter.spammers - add
+
+  -- Frame
+  -- no changes to the set of user mailboxes
+  -- no changes to the status of messages
+  -- no changes to the contents of mailboxes
+  noUserboxChange
+  noStatusChange [Message]
+  noMessageChange [Mailbox]
 }
 
 -- noOp
