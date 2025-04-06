@@ -548,6 +548,12 @@ pred ap4 {
 }
 --run ap4 for 1 but 8 Object
 
+pred ap5 {
+  -- Eventually, an active message is implicitly removed from spam (by removing its address from the filter
+  eventually (#(spam.messages') < #(spam.messages) and Mail.op' = RS)
+}
+--run ap5 for 1 but 8 Object
+
 --------------------
 -- Valid Properties
 --------------------
