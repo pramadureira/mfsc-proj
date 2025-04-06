@@ -682,8 +682,9 @@ assert av4 {
 -- if it was explicitly deleted or moved elsewhere
 --always all m: Message, mb: Mailbox | ((m not in Mail.spam.messages) releases ( (once (getMessage[m] and (m.address in SpamFilter.spammers) ) ) )) => (once moveMessage[m, mb] or once deleteMessage[m])
 --always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
+  always all m: address.(SpamFilter.spammers) | isActive[m] and m.msgMailbox != Mail.spam => once ((some mb: Mailbox | moveMessage[m, mb]) or deleteMessage[m])
 }
---check av4 for 5 but 11 Object
+--check av4 for 5 but 10 Object, 5 Address
 
 assert av5 {
 -- The spamFilter never contains the address of its mail owner
