@@ -356,6 +356,7 @@ pred noOp {
   noStatusChange [Message] 
   noMessageChange [Mailbox] 
   noUserboxChange
+  noSpamFilterChange
   
   Mail.op' = none 
 }
@@ -370,16 +371,27 @@ pred Init {
 
 
   -- The system mailboxes are all distinct
-  disj [sent, drafts, inbox, trash]
+  disj [sent, drafts, inbox, trash, spam]
 
 
   -- All mailboxes anywhere are empty
-  all mb: Mailbox | no mb.messages
+  no messages
 
 
   -- The set of user-created mailboxes is empty
-  no Mail.uboxes
+  no uboxes
 
+
+  -- The spam filter is empty
+  no spammers
+
+  
+  -- All fresh messages come from the user
+  all m: Message | isFresh[m] => m.address = Mail.userAddress
+
+
+  -- All external messages come from other users
+  all m: Message | isExternal[m] => m.address != Mail.userAddress
 
   -- [Keep this tracking constraint intact]
   -- no operator generates the initial state
@@ -405,6 +417,10 @@ pred Trans {
   or 
   (some m: Message | some mb: Mailbox | moveMessage [m, mb])
   or 
+  (some add: Address | addToFilter[add])
+  or
+  (some add: Address | removeFromFilter[add])
+  or
   emptyTrash
   or 
   noOp
@@ -503,28 +519,28 @@ pred p10 {
 
 pred ap1 {
   -- Eventually an address is added to the spamFilter
-  
+  eventually some spammers
 }
---run ap1 for 1 but 8 Object
+run ap1 for 1 but 8 Object
 
 
 pred ap2 {
   -- Eventually an address is removed from the spamFilter
-  
+  eventually some add: Address | removeFromFilter[add]
 }
 --run ap2 for 1 but 8 Object
 
 pred ap3 {
   -- Eventually an active message is implicitly moved to the spam mailbox
   -- (by adding its address to the spamFilter)
-  
+  eventually (#(spam.messages') > #(spam.messages) and Mail.op' = AS)
 }
 --run ap3 for 1 but 8 Object
 
 
 pred ap4 {
-  -- Eventually message is removed from the spam mailbox
-  
+  -- Eventually, a message is removed from the spam mailbox
+  eventually #(spam.messages') < #(spam.messages)
 }
 --run ap4 for 1 but 8 Object
 
@@ -536,7 +552,7 @@ assert v1 {
   --  Every active message is in one of the app's mailboxes 
   always all m: Message | isActive[m] => m in (sboxes.messages + Mail.uboxes.messages)
 }
---check v1 for 5 but 11 Object
+--check v1 for 5 but 8 Object, 4 Address
 
 
 assert v2 {
@@ -544,26 +560,26 @@ assert v2 {
 	--always all m: status.(Status - Active) | m.msgMailbox = none
 	always no status.(Status - Active) & Mailbox.messages
 }
---check v2 for 5 but 11 Object
+--check v2 for 5 but 8 Object, 4 Address
 
 assert v3 {
 -- Each of the user-created mailboxes differs from the predefined mailboxes
   always no Mail.uboxes & sboxes
 }
---check v3 for 5 but 11 Object
+--check v3 for 5 but 8 Object, 4 Address
 
 assert v4 {
 -- Every active message was once external or fresh.
   always all m: Message | isActive[m] => once (isExternal[m] or isFresh[m])
 }
---check v4 for 5 but 11 Object
+--check v4 for 5 but 8 Object, 4 Address
 
 assert v5 {
 -- Every user-created mailbox starts empty.
   always all ub: Mail.uboxes | (before ub not in Mail.uboxes) => no ub.messages
 
 }
---check v5 for 5 but 11 Object
+--check v5 for 5 but 8 Object, 4 Address
 
 assert v6 {
 -- User-created mailboxes stay in the system indefinitely or until they are deleted.
@@ -579,21 +595,21 @@ assert v7 {
 
 assert v8 {
 -- The app's mailboxes contain only active messages
-  always all m: (sboxes.messages + Mail.uboxes.messages) | isActive[m]
+  always all m: Mailbox.messages | isActive[m]
 }
---check v8 for 5 but 11 Object
+--check v8 for 5 but 8 Object, 4 Address
 
 assert v9 {
 -- Every received message passes through the inbox
   always all m: Message | getMessage[m] => m in Mail.inbox.messages'
 }
---check v9 for 5 but 11 Object
+--check v9 for 5 but 8 Object, 4 Address
 
 assert v10 {
 -- A purged message is purged forever
   always all m: Message |  isPurged[m] => always isPurged[m]
 }
---check v10 for 5 but 11 Object
+--check v10 for 5 but 8 Object, 4 Address
 
 assert v11 {
 -- No messages in the system can ever (re)acquire External status
@@ -613,7 +629,7 @@ assert v13 {
   --always all m: Message | isPurged[m] => (once Message = Message - m) or (no messages.m & (sboxes + Mail.uboxes))
   always all m: Message | (isPurged[m] and before isActive[m]) => (once deleteMessage[m]) or (before deleteMailbox[m.msgMailbox])
 }
---check v13 for 5 but 11 Object
+--check v13 for 5 but 9 Object, 4 Address
 
 assert v14 {
 -- Every message in the trash mailbox had been previously deleted
@@ -622,13 +638,13 @@ assert v14 {
     (m in (sboxes.messages + Mail.uboxes.messages)))*/
   always all m: Mail.trash.messages | (before m in Mail.trash.messages) or (once deleteMessage[m])
 }
---check v14 for 5 but 11 Object
+--check v14 for 5 but 9 Object, 4 Address
 
 assert v15 {
 -- Every message in a user-created mailbox ultimately comes from a system mailbox.
     always all m: Mail.uboxes.messages | once m in sboxes.messages
 }
---check v15 for 5 but 11 Object
+--check v15 for 5 but 9 Object, 4 Address
 
 assert v16 {
 -- A purged message that was never in the trash mailbox must have been 
@@ -637,7 +653,7 @@ assert v16 {
   ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))*/
   always all m: status.Purged | (historically m not in Mail.trash.messages) => once (m.msgMailbox in Mail.uboxes and deleteMailbox[m.msgMailbox])
 }
---check v16 for 5 but 11 Object
+--check v16 for 5 but 9 Object, 4 Address
 
 ---------------------------
 -- Additional Valid Properties
