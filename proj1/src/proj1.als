@@ -548,7 +548,7 @@ assert v16 {
   ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))*/
   always all m: status.Purged | (historically m not in Mail.trash.messages) => once (m.msgMailbox in Mail.uboxes and deleteMailbox[m.msgMailbox])
 }
-check v16 for 5 but 11 Object
+--check v16 for 5 but 11 Object
 
 
 ----------------------
@@ -559,19 +559,22 @@ check v16 for 5 but 11 Object
 -- Negated into: 
 assert i1 {
   -- There is no message that is always in the inbox
-  always (no m: Mail.inbox.messages | always m in Mail.inbox.messages)
+  always (no m: status.Active | always m in Mail.inbox.messages)
 }
 --check i1 for 5 but 11 Object
 
 -- A message that was removed from the inbox may later reappear there.
 -- Negated into:
+-- TODO: currently doesnt work because of changes to moveMessage
 assert i2 {
-  no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
+  --no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
+  no m: Message | eventually (m in Mail.inbox.messages and eventually (m not in Mail.inbox.messages and eventually (m in Mail.inbox.messages)))
 }
 --check i2 for 5 but 11 Object
 
 -- A deleted message may go back to the mailbox it was deleted from.
 -- Negated into:
+-- TODO: verify this one more closely
 assert i3 {
   -- If a message is deleted, it never goes back to the mailbox it was deleted from.
   all m: Message | (eventually m in Mail.trash.messages) => (always m not in messages.m.messages)
