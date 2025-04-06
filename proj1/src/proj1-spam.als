@@ -169,8 +169,10 @@ pred createMessage [m: Message] {
 pred moveMessage [m: Message, mb: Mailbox] {
   -- Preconditions:
   --   mb cannot be trash
+  --   mb cannot be spam
   mb != Mail.trash
-  
+  mb != Mail.spam  
+
   genericMove[m, mb]
 
   Mail.op' = MM
@@ -448,7 +450,36 @@ pred p10 {
 }
 --run p10 for 1 but 8 Object
 
+----------------------------
+-- Additional Sanity Check runs
+----------------------------
 
+pred ap1 {
+  -- Eventually an address is added to the spamFilter
+  
+}
+--run ap1 for 1 but 8 Object
+
+
+pred ap2 {
+  -- Eventually an address is removed from the spamFilter
+  
+}
+--run ap2 for 1 but 8 Object
+
+pred ap3 {
+  -- Eventually an active message is implicitly moved to the spam mailbox
+  -- (by adding its address to the spamFilter)
+  
+}
+--run ap3 for 1 but 8 Object
+
+
+pred ap4 {
+  -- Eventually message is removed from the spam mailbox
+  
+}
+--run ap4 for 1 but 8 Object
 
 --------------------
 -- Valid Properties
@@ -561,6 +592,36 @@ assert v16 {
 }
 --check v16 for 5 but 11 Object
 
+---------------------------
+-- Additional Valid Properties
+---------------------------
+
+assert av1 {
+-- Any message that is currently in the spam mailbox
+-- belongs to an address that has previously (or is currently) in spamFilter
+
+}
+--check av1 for 5 but 11 Object
+
+assert av2 {
+-- A message received from an address in spamFilter always goes to the spam mailbox
+
+}
+--check av2 for 5 but 11 Object
+
+assert av3 {
+-- A message received from an address in spamFilter may only be in a mailbox other that spam
+-- if it was explicitly deleted or moved elsewhere
+
+}
+--check av3 for 5 but 11 Object
+
+assert av4 {
+-- The spamFilter never contains the address of its mail owner
+
+}
+--check av4 for 5 but 11 Object
+
 
 ----------------------
 -- Invalid Properties
@@ -598,3 +659,16 @@ assert i4 {
   all m: Message | isExternal[m] => eventually m in Mail.inbox.messages
 }
 --check i4 for 5 but 11 Object
+
+----------------------------
+-- Additional Invalid Properties
+----------------------------
+
+-- A message can be in the spam mailbox without its address being in the spamFilter
+-- (this may happen because its address has been removed from the spamFilter)
+-- Negated into:
+assert ai1 {
+  
+}
+--check ai1 for 5 but 11 Object
+
