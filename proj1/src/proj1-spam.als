@@ -680,7 +680,8 @@ assert av3 {
 assert av4 {
 -- A message received from an address in spamFilter may only be in a mailbox other that spam
 -- if it was explicitly deleted or moved elsewhere
-  always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
+--always all m: Message, mb: Mailbox | ((m not in Mail.spam.messages) releases ( (once (getMessage[m] and (m.address in SpamFilter.spammers) ) ) )) => (once moveMessage[m, mb] or once deleteMessage[m])
+--always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
 }
 --check av4 for 5 but 11 Object
 
