@@ -521,7 +521,7 @@ pred ap1 {
   -- Eventually an address is added to the spamFilter
   eventually some spammers
 }
-run ap1 for 1 but 8 Object
+--run ap1 for 1 but 8 Object
 
 
 pred ap2 {
@@ -662,6 +662,7 @@ assert v16 {
 assert av1 {
 -- Any message that is currently in the spam mailbox
 -- belongs to an address that has previously (or is currently) in spamFilter
+  always all m: Mail.spam.messages | once (m.address in SpamFilter.spammers)
 
 }
 --check av1 for 5 but 11 Object
