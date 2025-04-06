@@ -155,6 +155,9 @@ pred moveMessage [m: Message, mb: Mailbox] {
   -- Preconditions:
   --   mb cannot be trash
   mb != Mail.trash
+  -- TODO: Confirm -> added because of assert v7 and v9
+  mb != Mail.sent
+  mb != Mail.inbox
   
   genericMove[m, mb]
 
@@ -468,23 +471,23 @@ assert v4 {
 
 assert v5 {
 -- Every user-created mailbox starts empty.
-  always all mb: Mail.uboxes | (before Mail.uboxes = Mail.uboxes - mb) => no mb.messages
+  always all ub: Mail.uboxes | (before Mail.uboxes = Mail.uboxes - ub) => no ub.messages
 
 }
 --check v5 for 5 but 11 Object
 
 assert v6 {
 -- User-created mailboxes stay in the system indefinitely or until they are deleted.
-  always all mb: Mail.uboxes | (after Mail.uboxes = Mail.uboxes - mb) releases (mb in Mail.uboxes)
+  always all ub: Mail.uboxes | (after Mail.uboxes = Mail.uboxes - ub) releases (ub in Mail.uboxes)
 }
 --check v6 for 5 but 11 Object
 
 assert v7 {
 -- Every sent message is sent from the draft mailbox 
-  always all m: Mail.sent | once Mail.drafts = Mail.drafts + m
+  always all m: Mail.sent.messages | once m in Mail.drafts.messages
 
 }
--- check v7 for 5 but 11 Object
+--check v7 for 5 but 11 Object
 
 assert v8 {
 -- The app's mailboxes contain only active messages
@@ -494,7 +497,7 @@ assert v8 {
 
 assert v9 {
 -- Every received message passes through the inbox
-
+  always all m: Mail.inbox.messages | once isExternal[m]
 }
 --check v9 for 5 but 11 Object
 
@@ -529,7 +532,6 @@ assert v14 {
   always all m: Mail.trash.messages |
     once ((Mail.trash.messages = Mail.trash.messages - m) and
     (m in (sboxes.messages + Mail.uboxes.messages)))
-
 }
 --check v14 for 5 but 11 Object
 
@@ -571,14 +573,15 @@ assert i2 {
 -- Negated into:
 assert i3 {
   -- If a message is deleted, it never goes back to the mailbox it was deleted from.
-  no m: Message | (after m in Mail.trash.messages) => (eventually m in messages.m.messages)
+  all m: Message | (eventually m in Mail.trash.messages) => (always m not in messages.m.messages)
 }
 --check i3 for 5 but 11 Object
 
 -- Some external messages may never be received
 -- Negated into:
 assert i4 {
-  no m: Message | isExternal[m] => some (m & (Mail.uboxes + sboxes).messages)
+  -- All external messages will eventually be received
+  all m: Message | isExternal[m] => eventually m in Mail.inbox.messages
 }
 --check i4 for 5 but 11 Object
 
