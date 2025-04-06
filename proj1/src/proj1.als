@@ -417,15 +417,14 @@ pred p8 {
   -- Eventually the inbox has messages
   eventually some Mail.inbox.messages
   -- Every message in the inbox at any point is eventually removed
-  all m: Mail.inbox.messages | eventually m not in Mail.inbox.messages
+  always all m: Mail.inbox.messages | eventually m not in Mail.inbox.messages
 }
 --run p8 for 1 but 8 Object
 
 
 pred p9 {
   -- The trash mail box is emptied of its messages eventually
-  eventually some Mail.trash.messages
-  eventually no Mail.trash.messages
+  eventually (some Mail.trash.messages and eventually no Mail.trash.messages)
 }
 --run p9 for 1 but 8 Object
 
@@ -471,14 +470,14 @@ assert v4 {
 
 assert v5 {
 -- Every user-created mailbox starts empty.
-  always all ub: Mail.uboxes | (before Mail.uboxes = Mail.uboxes - ub) => no ub.messages
+  always all ub: Mail.uboxes | (before ub not in Mail.uboxes) => no ub.messages
 
 }
 --check v5 for 5 but 11 Object
 
 assert v6 {
 -- User-created mailboxes stay in the system indefinitely or until they are deleted.
-  always all ub: Mail.uboxes | (after Mail.uboxes = Mail.uboxes - ub) releases (ub in Mail.uboxes)
+  always all ub: Mail.uboxes | (deleteMailbox[ub]) releases (ub in Mail.uboxes)
 }
 --check v6 for 5 but 11 Object
 
@@ -503,13 +502,13 @@ assert v9 {
 
 assert v10 {
 -- A purged message is purged forever
-  always all m: Message |  once isPurged[m] => always isPurged[m]
+  always all m: Message |  isPurged[m] => always isPurged[m]
 }
 --check v10 for 5 but 11 Object
 
 assert v11 {
 -- No messages in the system can ever (re)acquire External status
-  always all m:Message |  once not isExternal[m] => always not isExternal[m]
+  always all m:Message |  not isExternal[m] => always not isExternal[m]
 }
 --check v11 for 5 but 11 Object
 
@@ -522,16 +521,17 @@ assert v12 {
 assert v13 {
 -- To purge an active message one must first delete the message 
 -- or delete the mailbox it is in.
-  always all m: Message | isPurged[m] => (once Message = Message - m) or (no messages.m & (sboxes + Mail.uboxes))
-
+  --always all m: Message | isPurged[m] => (once Message = Message - m) or (no messages.m & (sboxes + Mail.uboxes))
+  always all m: Message | (isPurged[m] and before isActive[m]) => (once deleteMessage[m]) or (before deleteMailbox[m.msgMailbox])
 }
 --check v13 for 5 but 11 Object
 
 assert v14 {
 -- Every message in the trash mailbox had been previously deleted
-  always all m: Mail.trash.messages |
+  /*always all m: Mail.trash.messages |
     once ((Mail.trash.messages = Mail.trash.messages - m) and
-    (m in (sboxes.messages + Mail.uboxes.messages)))
+    (m in (sboxes.messages + Mail.uboxes.messages)))*/
+  always all m: Mail.trash.messages | (before m in Mail.trash.messages) or (once deleteMessage[m])
 }
 --check v14 for 5 but 11 Object
 
@@ -544,10 +544,11 @@ assert v15 {
 assert v16 {
 -- A purged message that was never in the trash mailbox must have been 
 -- in a user mailbox that was later deleted
-  always all m: Message | (((isPurged[m]) and (historically m not in Mail.trash.messages)) => 
-  ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))
+  /*always all m: Message | (((isPurged[m]) and (historically m not in Mail.trash.messages)) => 
+  ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))*/
+  always all m: status.Purged | (historically m not in Mail.trash.messages) => once (m.msgMailbox in Mail.uboxes and deleteMailbox[m.msgMailbox])
 }
---check v16 for 5 but 11 Object
+check v16 for 5 but 11 Object
 
 
 ----------------------
