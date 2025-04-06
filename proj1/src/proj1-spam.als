@@ -222,7 +222,9 @@ pred getMessage [m: Message] {
   --   to the set of messages in the remaining mailboxes, 
   --   or to the user-created mailboxes
   noStatusChange [Message - m]
-  noMessageChange [Mailbox - (Mail.inbox + Mail.spam)] 
+  m.address not in SpamFilter.spammers => noMessageChange [Mailbox - Mail.inbox] 
+  m.address in SpamFilter.spammers => noMessageChange [Mailbox - Mail.spam] 
+  --noMessageChange [Mailbox - (Mail.inbox + Mail.spam)] 
   noUserboxChange
   noSpamFilterChange
 
@@ -659,8 +661,7 @@ assert v16 {
 assert av1 {
 -- Any message that is currently in the spam mailbox
 -- belongs to an address that has previously (or is currently) in spamFilter
-  always all m: Mail.spam.messages | once (m.address in SpamFilter.spammers)
-
+  always all m: Mail.spam.messages | (m.address in SpamFilter.spammers) or (once (m.address in SpamFilter.spammers))
 }
 --check av1 for 5 but 11 Object
 
@@ -676,11 +677,10 @@ assert av3 {
 }
 --check av3 for 5 but 11 Object
 
---TODO: REVIEW
 assert av4 {
 -- A message received from an address in spamFilter may only be in a mailbox other that spam
 -- if it was explicitly deleted or moved elsewhere
--- always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
+  always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
 }
 --check av4 for 5 but 11 Object
 
