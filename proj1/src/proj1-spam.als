@@ -652,7 +652,7 @@ assert av1 {
   always all m: Mail.spam.messages | once (m.address in SpamFilter.spammers)
 
 }
-check av1 for 5 but 11 Object
+--check av1 for 5 but 11 Object
 
 assert av2 {
 -- A message received from an address in spamFilter always goes to the spam mailbox
