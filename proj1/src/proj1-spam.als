@@ -340,7 +340,9 @@ pred removeFromFilter [add: Address] {
 
   -- Postconditions:
   -- add removed from spamfilter
+  -- existing messages from add in spam are moved to inbox, except those that are in the trash
   SpamFilter.spammers' = SpamFilter.spammers - add
+  msgMailbox' = msgMailbox ++ (address.add & Mail.spam.messages) -> Mail.inbox
 
   -- Frame
   -- no changes to the set of user mailboxes
@@ -348,7 +350,6 @@ pred removeFromFilter [add: Address] {
   -- no changes to the contents of mailboxes
   noUserboxChange
   noStatusChange [Message]
-  noMessageChange [Mailbox]
 
   Mail.op' = RS
 }
