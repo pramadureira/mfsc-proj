@@ -214,8 +214,8 @@ pred getMessage [m: Message] {
   --   status of m' is active
   --   m' is in inbox and no other mailbox (or spam, if the address is in the filter)
   after isActive[m]
-  m.address in SpamFilter.spammers => Mail.inbox.messages' = Mail.inbox.messages + m
-  m.address not in SpamFilter.spammers => Mail.spam.messages' = Mail.spam.messages + m
+  m.address not in SpamFilter.spammers => Mail.inbox.messages' = Mail.inbox.messages + m
+  m.address in SpamFilter.spammers => Mail.spam.messages' = Mail.spam.messages + m
 
   -- Frame
   --   no changes to the state of other messages,
@@ -349,6 +349,8 @@ pred removeFromFilter [add: Address] {
   noUserboxChange
   noStatusChange [Message]
   noMessageChange [Mailbox]
+
+  Mail.op' = RS
 }
 
 -- noOp
