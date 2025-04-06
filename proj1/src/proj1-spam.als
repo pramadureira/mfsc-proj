@@ -735,13 +735,13 @@ assert i4 {
 -- Additional Invalid Properties
 ----------------------------
 
--- A message can be in the spam mailbox without its address being in the spamFilter
--- (this may happen because its address has been removed from the spamFilter)
+-- An active message can remain in its inbox when its address is added to the spamFilter
+-- (this may happen if the message is in the trash)
 -- Negated into:
 assert ai1 {
-   -- No message can be in the spam mailbox without its address being in the spamFilter
-   always no m: Message | (m in Mail.spam.messages) and (m.address not in SpamFilter.spammers)
+   -- No active message can maintain its mailbox when its address is added to the spamFilter
+   always no m: status.Active | (m.msgMailbox' = m.msgMailbox) and addToFilter[m.address]
 }
---check ai1 for 5 but 11 Object
+check ai1 for 5 but 11 Object
 
 
