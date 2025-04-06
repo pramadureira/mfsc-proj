@@ -543,8 +543,8 @@ pred ap3 {
 
 
 pred ap4 {
-  -- Eventually, a message is removed from the spam mailbox
-  eventually #(spam.messages') < #(spam.messages)
+  -- Eventually, a message is explicitly removed from the spam mailbox
+  eventually (#(spam.messages') < #(spam.messages) and Mail.op' in MM + DM)
 }
 --run ap4 for 1 but 8 Object
 
