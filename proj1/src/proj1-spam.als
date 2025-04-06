@@ -334,9 +334,7 @@ pred addToFilter [add: Address] {
 pred removeFromFilter [add: Address] {
   -- Preconditions:
   -- add in spammers
-  -- add not own address
   add in SpamFilter.spammers
-  add != Mail.userAddress
 
   -- Postconditions:
   -- add removed from spamfilter
