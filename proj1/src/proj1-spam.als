@@ -327,6 +327,7 @@ pred addToFilter [add: Address] {
   -- Frame
   -- no changes to the set of user mailboxes
   -- no changes to the status of messages
+  -- the integrity of the mailboxes' contents is already assured, since we directly "assign" a value to the messages relation
   noStatusChange [Message]
   noUserboxChange
 
@@ -347,7 +348,7 @@ pred removeFromFilter [add: Address] {
   -- Frame
   -- no changes to the set of user mailboxes
   -- no changes to the status of messages
-  -- no changes to the contents of mailboxes
+  -- the integrity of the mailboxes' contents is already assured, since we directly "assign" a value to the messages relation
   noUserboxChange
   noStatusChange [Message]
 
