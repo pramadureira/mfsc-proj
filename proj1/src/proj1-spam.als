@@ -503,13 +503,14 @@ pred p10 {
 
 pred ap1 {
   -- Eventually an address is added to the spamFilter
-  
+  eventually (one addr: Address | addr in SpamFilter.spammers)
 }
 --run ap1 for 1 but 8 Object
 
 
 pred ap2 {
   -- Eventually an address is removed from the spamFilter
+  eventually (one addr: SpamFilter.spammers | eventually (SpamFilter.spammers = SpamFilter.spammers - addr))
   
 }
 --run ap2 for 1 but 8 Object
@@ -517,14 +518,16 @@ pred ap2 {
 pred ap3 {
   -- Eventually an active message is implicitly moved to the spam mailbox
   -- (by adding its address to the spamFilter)
-  
+  eventually (one m: Message | isActive[m] =>
+    eventually ((SpamFilter.spammers = SpamFilter.spammers + m.address) and
+                      (moveMessage[m, Mail.spam])))
 }
 --run ap3 for 1 but 8 Object
 
 
 pred ap4 {
-  -- Eventually message is removed from the spam mailbox
-  
+  -- Eventually a message is removed from the spam mailbox
+  eventually (one m: Mail.spam.messages | eventually (Mail.spam.messages = Mail.spam.messages - m))
 }
 --run ap4 for 1 but 8 Object
 
@@ -646,9 +649,10 @@ assert v16 {
 assert av1 {
 -- Any message that is currently in the spam mailbox
 -- belongs to an address that has previously (or is currently) in spamFilter
+  always all m: Mail.spam.messages | once (m.address in SpamFilter.spammers)
 
 }
---check av1 for 5 but 11 Object
+check av1 for 5 but 11 Object
 
 assert av2 {
 -- A message received from an address in spamFilter always goes to the spam mailbox
