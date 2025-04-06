@@ -601,11 +601,8 @@ assert v8 {
 }
 --check v8 for 5 but 8 Object, 4 Address
 
-assert v9 {
--- Every received message passes through the inbox
-  always all m: Message | getMessage[m] => m in Mail.inbox.messages'
-}
---check v9 for 5 but 9 Object, 4 Address
+-- assert v9 -> Every received message passes through the inbox
+-- This assert was deleted, because it was no longer true, given the addition of the spam mailbox
 
 assert v10 {
 -- A purged message is purged forever
@@ -671,22 +668,29 @@ assert av1 {
 
 assert av2 {
 -- A message received from an address in spamFilter always goes to the spam mailbox
-
+   always all m: Message | (getMessage[m] and (m.address in SpamFilter.spammers)) => m in Mail.spam.messages'
 }
 --check av2 for 5 but 11 Object
 
 assert av3 {
--- A message received from an address in spamFilter may only be in a mailbox other that spam
--- if it was explicitly deleted or moved elsewhere
-
+-- A message received from an address not in spamFilter always goes to the inbox mailbox
+   always all m: Message | (getMessage[m] and (m.address not in SpamFilter.spammers)) => m in Mail.inbox.messages'
 }
 --check av3 for 5 but 11 Object
 
+--TODO: REVIEW
 assert av4 {
--- The spamFilter never contains the address of its mail owner
-
+-- A message received from an address in spamFilter may only be in a mailbox other that spam
+-- if it was explicitly deleted or moved elsewhere
+-- always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
 }
 --check av4 for 5 but 11 Object
+
+assert av5 {
+-- The spamFilter never contains the address of its mail owner
+  always Mail.userAddress not in SpamFilter.spammers
+}
+--check av5 for 5 but 11 Object
 
 
 ----------------------
@@ -734,7 +738,9 @@ assert i4 {
 -- (this may happen because its address has been removed from the spamFilter)
 -- Negated into:
 assert ai1 {
-  
+   -- No message can be in the spam mailbox without its address being in the spamFilter
+   always no m: Message | (m in Mail.spam.messages) and (m.address not in SpamFilter.spammers)
 }
 --check ai1 for 5 but 11 Object
+
 
