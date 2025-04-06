@@ -171,7 +171,8 @@ pred createMessage [m: Message] {
 pred moveMessage [m: Message, mb: Mailbox] {
   -- Preconditions:
   --   mb cannot be trash
-  mb != Mail.trash
+  --   mb cannot be spam
+  mb not in Mail.trash + Mail.spam
   
   genericMove[m, mb]
 
@@ -211,10 +212,10 @@ pred getMessage [m: Message] {
  
   -- Postconditions:
   --   status of m' is active
-  --   m' is in inbox and no other mailbox
+  --   m' is in inbox and no other mailbox (or spam, if the address is in the filter)
   after isActive[m]
-  --after m.msgMailbox = Mail.inbox
-  Mail.inbox.messages' = Mail.inbox.messages + m
+  m.address in SpamFilter.spammers => Mail.inbox.messages' = Mail.inbox.messages + m
+  m.address not in SpamFilter.spammers => Mail.spam.messages' = Mail.spam.messages + m
 
   -- Frame
   --   no changes to the state of other messages,
