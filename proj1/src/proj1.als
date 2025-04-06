@@ -483,8 +483,7 @@ assert v6 {
 
 assert v7 {
 -- Every sent message is sent from the draft mailbox 
-  always all m: Mail.sent.messages | once m in Mail.drafts.messages
-
+  always all m: Message | sendMessage[m] => m in Mail.drafts.messages
 }
 --check v7 for 5 but 11 Object
 
@@ -496,7 +495,7 @@ assert v8 {
 
 assert v9 {
 -- Every received message passes through the inbox
-  always all m: Mail.inbox.messages | once isExternal[m]
+  always all m: Message | getMessage[m] => m in Mail.inbox.messages'
 }
 --check v9 for 5 but 11 Object
 
