@@ -397,15 +397,16 @@ pred p5 {
 
 pred p6 {
   -- Eventually the inbox gets two messages in a row from outside
-  eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
+  /*eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
     isExternal[m1] and isExternal[m2] and m1 != m2 and
-    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))
+    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))*/
+  eventually some m1, m2: Message | (getMessage[m1] ; getMessage[m2])
 }
 --run p6 for 1 but 8 Object
 
 pred p7 {
   -- Eventually some user mailbox gets deleted
-  eventually (some u: Mail.uboxes | eventually Mail.uboxes = Mail.uboxes - u)
+  eventually (some u: Mail.uboxes | after u not in Mail.uboxes)
 }
 --run p7 for 1 but 8 Object
 
@@ -428,8 +429,7 @@ pred p9 {
 pred p10 {
   -- Eventually an external message arrives and 
   -- after that nothing happens anymore
-  eventually (one m: Message | isExternal[m])
-  after always noOp
+  eventually ((one m: Message | getMessage[m]) and after always noOp)
 }
 --run p10 for 1 but 8 Object
 
@@ -448,7 +448,6 @@ assert v1 {
 
 assert v2 {
 --  Inactive messages are in no mailboxes at all
-	--always all m: status.(Status - Active) | m.msgMailbox = none
 	always no status.(Status - Active) & Mailbox.messages
 }
 --check v2 for 5 but 11 Object
@@ -527,7 +526,7 @@ assert v14 {
   /*always all m: Mail.trash.messages |
     once ((Mail.trash.messages = Mail.trash.messages - m) and
     (m in (sboxes.messages + Mail.uboxes.messages)))*/
-  always all m: Mail.trash.messages | (before m in Mail.trash.messages) or (once deleteMessage[m])
+  always all m: Mail.trash.messages | once deleteMessage[m]
 }
 --check v14 for 5 but 11 Object
 
@@ -562,17 +561,16 @@ assert i1 {
 -- A message that was removed from the inbox may later reappear there.
 -- Negated into:
 assert i2 {
-  --no m: Message | eventually ((m in Mail.inbox.messages and deleteMessage[m]) and after eventually m in Mail.inbox.messages) 
+  -- A message may never return to the inbox after leaving it
   no m: Message | eventually (m in Mail.inbox.messages and eventually (m not in Mail.inbox.messages and eventually (m in Mail.inbox.messages)))
 }
-check i2 for 5 but 11 Object
+--check i2 for 5 but 11 Object
 
 -- A deleted message may go back to the mailbox it was deleted from.
 -- Negated into:
--- TODO: verify this one more closely
 assert i3 {
   -- If a message is deleted, it never goes back to the mailbox it was deleted from.
-  all m: Message | (eventually m in Mail.trash.messages) => (always m not in messages.m.messages)
+  always all m: Message, mb: Mailbox | (m in mb.messages and deleteMessage[m]) => (after always m not in mb.messages)
 }
 --check i3 for 5 but 11 Object
 
