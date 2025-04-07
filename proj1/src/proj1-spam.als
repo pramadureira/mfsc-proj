@@ -738,7 +738,7 @@ assert i4 {
 -- Additional Invalid Properties
 ----------------------------
 
--- An active message can remain in its inbox when its address is added to the spamFilter
+-- An active message can remain in its mailbox when its address is added to the spamFilter
 -- (this may happen if the message is in the trash)
 -- Negated into:
 assert ai1 {
