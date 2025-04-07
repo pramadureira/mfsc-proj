@@ -42,7 +42,7 @@ one sig Mail {
   -- user mailboxes
   var uboxes: set Mailbox,
 
-  userAddress: one Address,
+  userAddress: Address,
 
   var op: lone Operator -- added for tracking purposes only
 }
@@ -224,7 +224,6 @@ pred getMessage [m: Message] {
   noStatusChange [Message - m]
   m.address not in SpamFilter.spammers => noMessageChange [Mailbox - Mail.inbox] 
   m.address in SpamFilter.spammers => noMessageChange [Mailbox - Mail.spam] 
-  --noMessageChange [Mailbox - (Mail.inbox + Mail.spam)] 
   noUserboxChange
   noSpamFilterChange
 
@@ -388,7 +387,6 @@ pred Init {
 
   -- The spam filter is empty
   no spammers
-
   
   -- All fresh messages come from the user
   all m: Message | isFresh[m] => m.address = Mail.userAddress
@@ -456,9 +454,9 @@ pred p1 {
 
 pred p2 {
   -- The inbox contains more than one message at some point
-  eventually some mb: Mailbox | #mb.messages > 1
+  eventually #Mail.inbox.messages > 1
 }
---run p2 for 1 but 8 Object
+--run p2 for 1 but 9 Object
 
 pred p3 {
   -- The trash mailbox eventually contains messages and
@@ -481,15 +479,16 @@ pred p5 {
 
 pred p6 {
   -- Eventually the inbox gets two messages in a row from outside
-  eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
+  /*eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
     isExternal[m1] and isExternal[m2] and m1 != m2 and
-    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))
+    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))*/
+  eventually some m1, m2: Message | (getMessage[m1] ; getMessage[m2])
 }
---run p6 for 1 but 8 Object
+--run p6 for 1 but 9 Object
 
 pred p7 {
   -- Eventually some user mailbox gets deleted
-  eventually (some u: Mail.uboxes | eventually Mail.uboxes = Mail.uboxes - u)
+  eventually (some u: Mail.uboxes | after u not in Mail.uboxes)
 }
 --run p7 for 1 but 8 Object
 
@@ -512,8 +511,7 @@ pred p9 {
 pred p10 {
   -- Eventually an external message arrives and 
   -- after that nothing happens anymore
-  eventually (one m: Message | isExternal[m])
-  after always noOp
+  eventually ((one m: Message | getMessage[m]) and after always noOp)
 }
 --run p10 for 1 but 8 Object
 
@@ -562,34 +560,33 @@ assert v1 {
   --  Every active message is in one of the app's mailboxes 
   always all m: Message | isActive[m] => m in (sboxes.messages + Mail.uboxes.messages)
 }
---check v1 for 5 but 8 Object, 4 Address
+--check v1 for 5 but 11 Object, 4 Address
 
 
 assert v2 {
 --  Inactive messages are in no mailboxes at all
-	--always all m: status.(Status - Active) | m.msgMailbox = none
 	always no status.(Status - Active) & Mailbox.messages
 }
---check v2 for 5 but 8 Object, 4 Address
+--check v2 for 5 but 10 Object, 4 Address
 
 assert v3 {
 -- Each of the user-created mailboxes differs from the predefined mailboxes
   always no Mail.uboxes & sboxes
 }
---check v3 for 5 but 8 Object, 4 Address
+--check v3 for 5 but 11 Object, 4 Address
 
 assert v4 {
 -- Every active message was once external or fresh.
   always all m: Message | isActive[m] => once (isExternal[m] or isFresh[m])
 }
---check v4 for 5 but 8 Object, 4 Address
+--check v4 for 5 but 10 Object, 4 Address
 
 assert v5 {
 -- Every user-created mailbox starts empty.
   always all ub: Mail.uboxes | (before ub not in Mail.uboxes) => no ub.messages
 
 }
---check v5 for 5 but 8 Object, 4 Address
+--check v5 for 5 but 11 Object, 4 Address
 
 assert v6 {
 -- User-created mailboxes stay in the system indefinitely or until they are deleted.
@@ -607,7 +604,7 @@ assert v8 {
 -- The app's mailboxes contain only active messages
   always all m: Mailbox.messages | isActive[m]
 }
---check v8 for 5 but 8 Object, 4 Address
+--check v8 for 5 but 10 Object, 4 Address
 
 -- assert v9 -> Every received message passes through the inbox
 -- This assert was deleted, because it was no longer true, given the addition of the spam mailbox
@@ -616,7 +613,7 @@ assert v10 {
 -- A purged message is purged forever
   always all m: Message |  isPurged[m] => always isPurged[m]
 }
---check v10 for 5 but 8 Object, 4 Address
+--check v10 for 5 but 10 Object, 4 Address
 
 assert v11 {
 -- No messages in the system can ever (re)acquire External status
@@ -636,22 +633,22 @@ assert v13 {
   --always all m: Message | isPurged[m] => (once Message = Message - m) or (no messages.m & (sboxes + Mail.uboxes))
   always all m: Message | (isPurged[m] and before isActive[m]) => (once deleteMessage[m]) or (before deleteMailbox[m.msgMailbox])
 }
---check v13 for 5 but 9 Object, 4 Address
+--check v13 for 5 but 10 Object, 4 Address
 
 assert v14 {
 -- Every message in the trash mailbox had been previously deleted
   /*always all m: Mail.trash.messages |
     once ((Mail.trash.messages = Mail.trash.messages - m) and
     (m in (sboxes.messages + Mail.uboxes.messages)))*/
-  always all m: Mail.trash.messages | (before m in Mail.trash.messages) or (once deleteMessage[m])
+  always all m: Mail.trash.messages | once deleteMessage[m]
 }
---check v14 for 5 but 9 Object, 4 Address
+--check v14 for 5 but 10 Object, 4 Address
 
 assert v15 {
 -- Every message in a user-created mailbox ultimately comes from a system mailbox.
     always all m: Mail.uboxes.messages | once m in sboxes.messages
 }
---check v15 for 5 but 9 Object, 4 Address
+--check v15 for 5 but 10 Object, 4 Address
 
 assert v16 {
 -- A purged message that was never in the trash mailbox must have been 
@@ -660,7 +657,7 @@ assert v16 {
   ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))*/
   always all m: status.Purged | (historically m not in Mail.trash.messages) => once (m.msgMailbox in Mail.uboxes and deleteMailbox[m.msgMailbox])
 }
---check v16 for 5 but 9 Object, 4 Address
+--check v16 for 5 but 10 Object, 4 Address
 
 ---------------------------
 -- Additional Valid Properties
@@ -668,8 +665,8 @@ assert v16 {
 
 assert av1 {
 -- Any message that is currently in the spam mailbox
--- belongs to an address that has previously (or is currently) in spamFilter
-  always all m: Mail.spam.messages | (m.address in SpamFilter.spammers) or (once (m.address in SpamFilter.spammers))
+-- belongs to an address that is currently in spamFilter
+  always all m: Mail.spam.messages | m.address in SpamFilter.spammers
 }
 --check av1 for 5 but 11 Object
 
@@ -690,7 +687,7 @@ assert av4 {
 -- if it was explicitly deleted or moved elsewhere
 --always all m: Message, mb: Mailbox | ((m not in Mail.spam.messages) releases ( (once (getMessage[m] and (m.address in SpamFilter.spammers) ) ) )) => (once moveMessage[m, mb] or once deleteMessage[m])
 --always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
-  always all m: address.(SpamFilter.spammers) | isActive[m] and m.msgMailbox != Mail.spam => once ((some mb: Mailbox | moveMessage[m, mb]) or deleteMessage[m])
+  always all m: address.(SpamFilter.spammers) | isActive[m] and m.msgMailbox != Mail.spam => once ((m.msgMailbox = Mail.spam and some mb: Mailbox | moveMessage[m, mb]) or deleteMessage[m])
 }
 --check av4 for 5 but 10 Object, 5 Address
 
@@ -726,7 +723,7 @@ assert i2 {
 -- TODO: verify this one more closely
 assert i3 {
   -- If a message is deleted, it never goes back to the mailbox it was deleted from.
-  all m: Message | (eventually m in Mail.trash.messages) => (always m not in messages.m.messages)
+  always all m: Message, mb: Mailbox | (m in mb.messages and deleteMessage[m]) => (after always m not in mb.messages)
 }
 --check i3 for 5 but 11 Object
 
@@ -749,6 +746,6 @@ assert ai1 {
    -- No active message can maintain its mailbox when its address is added to the spamFilter
    always no m: status.Active | (m.msgMailbox' = m.msgMailbox) and addToFilter[m.address]
 }
-check ai1 for 5 but 11 Object
+--check ai1 for 5 but 11 Object
 
 
