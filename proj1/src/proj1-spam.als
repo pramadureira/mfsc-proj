@@ -720,7 +720,6 @@ assert i2 {
 
 -- A deleted message may go back to the mailbox it was deleted from.
 -- Negated into:
--- TODO: verify this one more closely
 assert i3 {
   -- If a message is deleted, it never goes back to the mailbox it was deleted from.
   always all m: Message, mb: Mailbox | (m in mb.messages and deleteMessage[m]) => (after always m not in mb.messages)
