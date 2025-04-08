@@ -186,7 +186,6 @@ pred deleteMessage [m: Message] {
   --   m cannot be already in trash
   m.msgMailbox != Mail.trash
   
-  -- Postconditions:
   genericMove[m, Mail.trash]
 
   Mail.op' = DM
@@ -198,7 +197,6 @@ pred sendMessage [m: Message] {
   --   m is in drafts
   m.msgMailbox = Mail.drafts
   
-  -- Postconditions:
   genericMove[m, Mail.sent]
 
   Mail.op' = SM
@@ -479,9 +477,6 @@ pred p5 {
 
 pred p6 {
   -- Eventually the inbox gets two messages in a row from outside
-  /*eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
-    isExternal[m1] and isExternal[m2] and m1 != m2 and
-    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))*/
   eventually some m1, m2: Message | (getMessage[m1] ; getMessage[m2])
 }
 --run p6 for 1 but 9 Object
@@ -630,16 +625,12 @@ assert v12 {
 assert v13 {
 -- To purge an active message one must first delete the message 
 -- or delete the mailbox it is in.
-  --always all m: Message | isPurged[m] => (once Message = Message - m) or (no messages.m & (sboxes + Mail.uboxes))
   always all m: Message | (isPurged[m] and before isActive[m]) => (once deleteMessage[m]) or (before deleteMailbox[m.msgMailbox])
 }
 --check v13 for 5 but 10 Object, 4 Address
 
 assert v14 {
 -- Every message in the trash mailbox had been previously deleted
-  /*always all m: Mail.trash.messages |
-    once ((Mail.trash.messages = Mail.trash.messages - m) and
-    (m in (sboxes.messages + Mail.uboxes.messages)))*/
   always all m: Mail.trash.messages | once deleteMessage[m]
 }
 --check v14 for 5 but 10 Object, 4 Address
@@ -653,8 +644,6 @@ assert v15 {
 assert v16 {
 -- A purged message that was never in the trash mailbox must have been 
 -- in a user mailbox that was later deleted
-  /*always all m: Message | (((isPurged[m]) and (historically m not in Mail.trash.messages)) => 
-  ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))*/
   always all m: status.Purged | (historically m not in Mail.trash.messages) => once (m.msgMailbox in Mail.uboxes and deleteMailbox[m.msgMailbox])
 }
 --check v16 for 5 but 10 Object, 4 Address
@@ -685,8 +674,6 @@ assert av3 {
 assert av4 {
 -- A message received from an address in spamFilter may only be in a mailbox other that spam
 -- if it was explicitly deleted or moved elsewhere
---always all m: Message, mb: Mailbox | ((m not in Mail.spam.messages) releases ( (once (getMessage[m] and (m.address in SpamFilter.spammers) ) ) )) => (once moveMessage[m, mb] or once deleteMessage[m])
---always all m: Message, mb: Mailbox | ((once getMessage[m]) and (m.address in SpamFilter.spammers) and (m not in Mail.spam.messages)) => (once moveMessage[m, mb] or once deleteMessage[m])
   always all m: address.(SpamFilter.spammers) | isActive[m] and m.msgMailbox != Mail.spam => once ((m.msgMailbox = Mail.spam and some mb: Mailbox | moveMessage[m, mb]) or deleteMessage[m])
 }
 --check av4 for 5 but 10 Object, 5 Address

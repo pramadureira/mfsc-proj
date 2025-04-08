@@ -168,7 +168,6 @@ pred deleteMessage [m: Message] {
   --   m cannot be already in trash
   m.msgMailbox != Mail.trash
   
-  -- Postconditions:
   genericMove[m, Mail.trash]
 
   Mail.op' = DM
@@ -180,7 +179,6 @@ pred sendMessage [m: Message] {
   --   m is in drafts
   m.msgMailbox = Mail.drafts
   
-  -- Postconditions:
   genericMove[m, Mail.sent]
 
   Mail.op' = SM
@@ -310,7 +308,7 @@ pred Init {
 
 
   -- All mailboxes anywhere are empty
-  all mb: Mailbox | no mb.messages
+  no messages
 
 
   -- The set of user-created mailboxes is empty
@@ -372,7 +370,7 @@ pred p1 {
 
 pred p2 {
   -- The inbox contains more than one message at some point
-  eventually some mb: Mailbox | #mb.messages > 1
+  eventually #Mail.inbox.messages > 1
 }
 --run p2 for 1 but 8 Object
 
@@ -397,9 +395,6 @@ pred p5 {
 
 pred p6 {
   -- Eventually the inbox gets two messages in a row from outside
-  /*eventually some m1, m2: Message | let mbMsgs = Mail.inbox.messages |
-    isExternal[m1] and isExternal[m2] and m1 != m2 and
-    (eventually (mbMsgs =  mbMsgs + m1 and after mbMsgs =  mbMsgs + m2))*/
   eventually some m1, m2: Message | (getMessage[m1] ; getMessage[m2])
 }
 --run p6 for 1 but 8 Object
@@ -523,9 +518,6 @@ assert v13 {
 
 assert v14 {
 -- Every message in the trash mailbox had been previously deleted
-  /*always all m: Mail.trash.messages |
-    once ((Mail.trash.messages = Mail.trash.messages - m) and
-    (m in (sboxes.messages + Mail.uboxes.messages)))*/
   always all m: Mail.trash.messages | once deleteMessage[m]
 }
 --check v14 for 5 but 11 Object
@@ -539,8 +531,6 @@ assert v15 {
 assert v16 {
 -- A purged message that was never in the trash mailbox must have been 
 -- in a user mailbox that was later deleted
-  /*always all m: Message | (((isPurged[m]) and (historically m not in Mail.trash.messages)) => 
-  ((once m in Mail.uboxes.messages) => (eventually Mail.uboxes = Mail.uboxes - messages.m)))*/
   always all m: status.Purged | (historically m not in Mail.trash.messages) => once (m.msgMailbox in Mail.uboxes and deleteMailbox[m.msgMailbox])
 }
 --check v16 for 5 but 11 Object
