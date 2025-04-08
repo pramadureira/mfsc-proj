@@ -438,7 +438,7 @@ assert v1 {
   --  Every active message is in one of the app's mailboxes 
   always all m: Message | isActive[m] => m in (sboxes.messages + Mail.uboxes.messages)
 }
---check v1 for 5 but 11 Object
+check v1 for 5 but 11 Object
 
 
 assert v2 {
