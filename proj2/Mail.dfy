@@ -85,6 +85,8 @@ class Mailbox { //Add specifications to the following
  
   // Creates an empty mailbox with name n
   constructor (n: string)
+    ensures name == n
+    ensures messages == {}
   {
     name := n;
     messages := {};
@@ -93,6 +95,8 @@ class Mailbox { //Add specifications to the following
   // Adds message m to the mailbox
   method add(m: Message)
     modifies this
+    ensures messages == old(messages) + {m}
+    ensures name == old(name)
   {    
     messages := { m } + messages;
   }
@@ -101,6 +105,8 @@ class Mailbox { //Add specifications to the following
   // m need not be in the mailbox 
   method remove(m: Message)
     modifies this
+    ensures messages == old(messages) - {m}
+    ensures name == old(name)
   {
     messages := messages - { m };
   }
@@ -108,6 +114,8 @@ class Mailbox { //Add specifications to the following
   // Empties the mailbox
   method empty()
     modifies this
+    ensures messages == {}
+    ensures name == old(name)
   {
     messages := {};
   }
