@@ -38,7 +38,7 @@ class Message
   var sender: Address
   var recipients: seq<Address>
 
-  constructor (s: Address)
+  constructor {:axiom} (s: Address) // TODO: Ask if we need axiom
     ensures fresh(id)
     ensures fresh(date)
     ensures content == ""
@@ -46,13 +46,13 @@ class Message
     ensures recipients == []
 
  
-  method setContent(c: string)
+  method {:axiom} setContent(c: string)
     modifies this
     ensures content == c
     ensures {id, date, sender} == old({id, date, sender})
     ensures recipients == old(recipients)
   
-  method setDate(d: Date)
+  method {:axiom} setDate(d: Date)
     modifies this
     ensures date == d
     ensures {id, sender} == old({id, sender})
@@ -60,7 +60,7 @@ class Message
     ensures content == old(content)
  
  
-  method addRecipient(p: nat, r: Address)
+  method {:axiom} addRecipient(p: nat, r: Address)
     modifies this
     requires p < |recipients|
     ensures |recipients| == |old(recipients)| + 1
@@ -95,6 +95,7 @@ class Mailbox { //Add specifications to the following
   // Adds message m to the mailbox
   method add(m: Message)
     modifies this
+    requires m !in messages // TODO: Ask if we need this requirement
     ensures messages == old(messages) + {m}
     ensures name == old(name)
   {    
@@ -114,6 +115,7 @@ class Mailbox { //Add specifications to the following
   // Empties the mailbox
   method empty()
     modifies this
+    requires messages != {} // TODO: Ask if we need this requirement
     ensures messages == {}
     ensures name == old(name)
   {
@@ -143,7 +145,8 @@ class MailApp {
   var userboxList: List<Mailbox>
 
   // Class invariant
-  ghost predicate isValid() 
+  ghost predicate isValid()
+  reads this
   {
     // replace each `true` by your formulation of the invariants 
     // described below
@@ -151,15 +154,17 @@ class MailApp {
     // Abstract state invariants
     //----------------------------------------------------------
     // 1. all system mailboxes (inbox, ..., sent) are distinct
-    && true
+    && |systemBoxes()| == 4 // TODO: Ask if this suffices
+
     // 2. none of the system mailboxes are in the set
     //    of user-defined mailboxes
-    && true
+    && systemBoxes() * userBoxes == {}
+      
     //----------------------------------------------------------
     // Abstract-to-concrete state invariants
     //----------------------------------------------------------
     // userBoxes is the set of mailboxes in userboxList
-    && true
+    && userBoxes == elements(userboxList)
   }
 
   constructor ()
@@ -173,15 +178,34 @@ class MailApp {
 
   // Deletes user-defined mailbox mb
   method deleteMailbox(mb: Mailbox)
+  modifies this
+
+  requires isValid()
+  requires mb in userBoxes
+
+  ensures userBoxes == old(userBoxes) - {mb}
+  ensures isValid()
   {
+    userBoxes := userBoxes - {mb};
+
     userboxList := remove(userboxList, mb);
   }
 
   // Adds a new mailbox with name n to set of user-defined mailboxes
   // provided that no user-defined mailbox has name n already
   method newMailbox(n: string)
+  modifies this
+
+  requires isValid()
+  requires forall mb: Mailbox :: mb in userBoxes ==> mb.name != n
+
+  ensures |userBoxes - old(userBoxes)| == 1
+  ensures exists mb: Mailbox :: mb in (userBoxes - old(userBoxes)) && mb.name == n
+  ensures isValid()
   {
     var mb := new Mailbox(n);
+    userBoxes := userBoxes + {mb};
+
     userboxList := Cons(mb, userboxList);
   }
 
