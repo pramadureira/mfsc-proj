@@ -38,14 +38,14 @@ class Message
   var sender: Address
   var recipients: seq<Address>
 
-  constructor {:axiom} (s: Address) // TODO: Ask if we need axiom
+  constructor (s: Address)
     ensures fresh(id)
     ensures fresh(date)
     ensures content == ""
     ensures sender == s
     ensures recipients == []
 
- 
+  // We added axiom to remove the warnings
   method {:axiom} setContent(c: string)
     modifies this
     ensures content == c
@@ -99,7 +99,7 @@ class Mailbox { //Add specifications to the following
     ensures messages == old(messages) + {m}
     ensures name == old(name)
   {    
-    messages := { m } + messages;
+    messages := messages + { m };
   }
 
   // Removes message m from mailbox
@@ -154,7 +154,7 @@ class MailApp {
     // Abstract state invariants
     //----------------------------------------------------------
     // 1. all system mailboxes (inbox, ..., sent) are distinct
-    && |systemBoxes()| == 4 // TODO: Ask if this suffices
+    && |systemBoxes()| == 4
 
     // 2. none of the system mailboxes are in the set
     //    of user-defined mailboxes
@@ -168,12 +168,21 @@ class MailApp {
   }
 
   constructor ()
+  ensures isValid()
+  ensures fresh(inbox) && inbox.name == "Inbox" && inbox.messages == {}
+  ensures fresh(drafts) && drafts.name == "Drafts" && drafts.messages == {} 
+  ensures fresh(trash) && trash.name == "Trash" && trash.messages == {} 
+  ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}
+  ensures userBoxes == {}
+
   {
     inbox := new Mailbox("Inbox");
     drafts := new Mailbox("Drafts");
     trash := new Mailbox("Trash");
     sent := new Mailbox("Sent");
     userboxList := Nil;
+
+    userBoxes := {};
   }
 
   // Deletes user-defined mailbox mb
@@ -199,8 +208,8 @@ class MailApp {
   requires isValid()
   requires forall mb: Mailbox :: mb in userBoxes ==> mb.name != n
 
-  ensures |userBoxes - old(userBoxes)| == 1
-  ensures exists mb: Mailbox :: mb in (userBoxes - old(userBoxes)) && mb.name == n
+  ensures exists mb: Mailbox :: fresh(mb) && mb in (userBoxes - old(userBoxes)) && mb.name == n && userBoxes == old(userBoxes) + {mb}
+  ensures systemBoxes() == old(systemBoxes())
   ensures isValid()
   {
     var mb := new Mailbox(n);
@@ -211,6 +220,13 @@ class MailApp {
 
   // Adds a new message with sender s to the drafts mailbox
   method newMessage(s: Address)
+  modifies this, drafts
+
+  requires isValid()
+
+  ensures |drafts.messages - old(drafts.messages)| == 1
+  ensures exists m: Message :: m in drafts.messages && m.sender == s
+  ensures isValid()
   {
     var m := new Message(s);
     drafts.add(m);
@@ -218,6 +234,17 @@ class MailApp {
 
   // Moves message m from mailbox mb1 to a different mailbox mb2
   method moveMessage (m: Message, mb1: Mailbox, mb2: Mailbox)
+  modifies this, mb1, mb2
+  requires isValid()
+  requires m in mb1.messages
+  requires m !in mb2.messages
+  requires mb1 != mb2
+
+  ensures mb1.messages == old(mb1.messages) - {m}
+  ensures mb2.messages == old(mb2.messages) + {m}
+  ensures mb1.name == old(mb1.name)
+  ensures mb2.name == old(mb2.name)
+  ensures isValid()
   {
     mb1.remove(m);
     mb2.add(m);
@@ -226,18 +253,40 @@ class MailApp {
   // Moves message m from non-null mailbox mb to the trash mailbox
   // provided that mb is not the trash mailbox
   method deleteMessage (m: Message, mb: Mailbox)
+  modifies this, mb, trash
+  requires isValid()
+  requires mb != trash
+  requires m in mb.messages
+  requires m !in trash.messages
+
+  ensures mb.messages == old(mb.messages) - {m}
+  ensures trash.messages == old(trash.messages) + {m}
+  ensures mb.name == old(mb.name)
+  ensures trash.name == old(trash.name)
+  ensures isValid()
   {
     moveMessage(m, mb, trash);
   }
 
   // Moves message m from the drafts mailbox to the sent mailbox
   method sendMessage(m: Message)
+  modifies this, drafts, sent
+  requires isValid()
+  requires m in drafts.messages
+  requires m !in sent.messages
+
+  ensures isValid()
+
   {
     moveMessage(m, drafts, sent);
   }
 
   // Empties the trash mailbox
   method emptyTrash ()
+  modifies this, trash
+  requires isValid()
+
+  ensures isValid()
   {
     trash.empty();
   }
