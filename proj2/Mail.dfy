@@ -95,7 +95,7 @@ class Mailbox { //Add specifications to the following
   // Adds message m to the mailbox
   method add(m: Message)
     modifies this
-    requires m !in messages // TODO: Ask if we need this requirement
+    requires m !in messages // We added this to ensure that we are not adding a repeated message to the same mailbox
     ensures messages == old(messages) + {m}
     ensures name == old(name)
   {    
@@ -115,7 +115,7 @@ class Mailbox { //Add specifications to the following
   // Empties the mailbox
   method empty()
     modifies this
-    requires messages != {} // TODO: Ask if we need this requirement
+    requires messages != {} // We added this to ensure that we are not emptying an empty mailbox
     ensures messages == {}
     ensures name == old(name)
   {
@@ -208,7 +208,10 @@ class MailApp {
   requires isValid()
   requires forall mb: Mailbox :: mb in userBoxes ==> mb.name != n
 
-  ensures exists mb: Mailbox :: fresh(mb) && mb in (userBoxes - old(userBoxes)) && mb.name == n && userBoxes == old(userBoxes) + {mb}
+  ensures exists mb: Mailbox :: fresh(mb) &&
+                                mb.name == n &&
+                                userBoxes == old(userBoxes) + {mb} &&
+                                mb.messages == {}
   ensures systemBoxes() == old(systemBoxes())
   ensures isValid()
   {
@@ -218,6 +221,7 @@ class MailApp {
     userboxList := Cons(mb, userboxList);
   }
 
+
   // Adds a new message with sender s to the drafts mailbox
   method newMessage(s: Address)
   modifies this, drafts
@@ -225,16 +229,17 @@ class MailApp {
   requires isValid()
 
   ensures |drafts.messages - old(drafts.messages)| == 1
-  ensures exists m: Message :: m in drafts.messages && m.sender == s
+  ensures exists m: Message :: drafts.messages == old(drafts.messages) + {m} && m.sender == s
   ensures isValid()
   {
     var m := new Message(s);
     drafts.add(m);
   }
 
+
   // Moves message m from mailbox mb1 to a different mailbox mb2
   method moveMessage (m: Message, mb1: Mailbox, mb2: Mailbox)
-  modifies this, mb1, mb2
+  modifies mb1, mb2
   requires isValid()
   requires m in mb1.messages
   requires m !in mb2.messages
@@ -244,6 +249,9 @@ class MailApp {
   ensures mb2.messages == old(mb2.messages) + {m}
   ensures mb1.name == old(mb1.name)
   ensures mb2.name == old(mb2.name)
+  ensures m.content == old(m.content)
+  ensures m.sender == old(m.sender)
+  ensures m.recipients == old(m.recipients)
   ensures isValid()
   {
     mb1.remove(m);
@@ -255,14 +263,17 @@ class MailApp {
   method deleteMessage (m: Message, mb: Mailbox)
   modifies this, mb, trash
   requires isValid()
-  requires mb != trash
   requires m in mb.messages
   requires m !in trash.messages
+  requires mb != trash
 
   ensures mb.messages == old(mb.messages) - {m}
   ensures trash.messages == old(trash.messages) + {m}
   ensures mb.name == old(mb.name)
   ensures trash.name == old(trash.name)
+  ensures m.content == old(m.content)
+  ensures m.sender == old(m.sender)
+  ensures m.recipients == old(m.recipients)
   ensures isValid()
   {
     moveMessage(m, mb, trash);
@@ -274,7 +285,15 @@ class MailApp {
   requires isValid()
   requires m in drafts.messages
   requires m !in sent.messages
+  requires drafts != sent
 
+  ensures drafts.messages == old(drafts.messages) - {m}
+  ensures sent.messages == old(sent.messages) + {m}
+  ensures drafts.name == old(drafts.name)
+  ensures sent.name == old(sent.name)
+  ensures m.content == old(m.content)
+  ensures m.sender == old(m.sender)
+  ensures m.recipients == old(m.recipients)
   ensures isValid()
 
   {
@@ -285,16 +304,19 @@ class MailApp {
   method emptyTrash ()
   modifies this, trash
   requires isValid()
-
+  requires trash.messages != {} // We added this to ensure that we are not emptying an empty trash
+  ensures trash.messages == {}
+  ensures trash.name == old(trash.name)
   ensures isValid()
   {
     trash.empty();
   }
 }
 
+
 // Test
 /* Can be used to test your code. */
-/*
+
 method test() {
 
   var ma := new MailApp(); 
@@ -315,4 +337,4 @@ method test() {
   ma.newMessage(s);        
   assert exists nw: Message :: ma.drafts.messages == {nw};
 }
-*/
+
