@@ -95,7 +95,7 @@ class Mailbox { //Add specifications to the following
   // Adds message m to the mailbox
   method add(m: Message)
     modifies this
-    requires m !in messages // We added this to ensure that we are not adding a repeated message to the same mailbox
+    requires m !in messages // Ensures that we will not add a repeated message to the same mailbox
     ensures messages == old(messages) + {m}
     ensures name == old(name)
   {    
@@ -115,7 +115,7 @@ class Mailbox { //Add specifications to the following
   // Empties the mailbox
   method empty()
     modifies this
-    requires messages != {} // We added this to ensure that we are not emptying an empty mailbox
+    requires messages != {} // Ensures that we will not try to empty an already empty mailbox
     ensures messages == {}
     ensures name == old(name)
   {
@@ -169,10 +169,10 @@ class MailApp {
 
   constructor ()
   ensures isValid()
-  ensures fresh(inbox) && inbox.name == "Inbox" && inbox.messages == {}
-  ensures fresh(drafts) && drafts.name == "Drafts" && drafts.messages == {} 
-  ensures fresh(trash) && trash.name == "Trash" && trash.messages == {} 
-  ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}
+  ensures fresh(inbox) && inbox.name == "Inbox" && inbox.messages == {}     // Ensures inbox has just been created with no messages and named "Inbox"
+  ensures fresh(drafts) && drafts.name == "Drafts" && drafts.messages == {} // Ensures drafts has just been created with no messages and named "Drafts"
+  ensures fresh(trash) && trash.name == "Trash" && trash.messages == {}     // Ensures trash has just been created with no messages and named "Trash"
+  ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}         // Ensures sent has just been created with no messages and named "Sent"
   ensures userBoxes == {}
 
   {
@@ -190,7 +190,7 @@ class MailApp {
   modifies this
 
   requires isValid()
-  requires mb in userBoxes
+  requires mb in userBoxes // Ensures that we will only try to delete a mailbox that actually exists in userBoxes
 
   ensures userBoxes == old(userBoxes) - {mb}
   ensures isValid()
@@ -206,12 +206,12 @@ class MailApp {
   modifies this
 
   requires isValid()
-  requires forall mb: Mailbox :: mb in userBoxes ==> mb.name != n
+  requires forall mb: Mailbox :: mb in userBoxes ==> mb.name != n       // there is no mailbox in userBoxes called n
 
-  ensures exists mb: Mailbox :: fresh(mb) &&
-                                mb.name == n &&
-                                userBoxes == old(userBoxes) + {mb} &&
-                                mb.messages == {}
+  ensures exists mb: Mailbox :: fresh(mb) &&                            // mb has just been created
+                                mb.name == n &&                         // mb is called n
+                                userBoxes == old(userBoxes) + {mb} &&   // the only new mailbox in userBoxes is mb
+                                mb.messages == {}                       // mb has no messages in it
   ensures systemBoxes() == old(systemBoxes())
   ensures isValid()
   {
@@ -228,8 +228,8 @@ class MailApp {
 
   requires isValid()
 
-  ensures |drafts.messages - old(drafts.messages)| == 1
-  ensures exists m: Message :: drafts.messages == old(drafts.messages) + {m} && m.sender == s
+  ensures exists m: Message :: drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
+                               m.sender == s                                      // s is the sender of m
   ensures isValid()
   {
     var m := new Message(s);
@@ -245,13 +245,13 @@ class MailApp {
   requires m !in mb2.messages
   requires mb1 != mb2
 
-  ensures mb1.messages == old(mb1.messages) - {m}
-  ensures mb2.messages == old(mb2.messages) + {m}
-  ensures mb1.name == old(mb1.name)
-  ensures mb2.name == old(mb2.name)
-  ensures m.content == old(m.content)
-  ensures m.sender == old(m.sender)
-  ensures m.recipients == old(m.recipients)
+  ensures mb1.messages == old(mb1.messages) - {m}  // m is removed from mb1
+  ensures mb2.messages == old(mb2.messages) + {m}  // m is added to mb2
+  ensures mb1.name == old(mb1.name)                // name of mb1 remains the same
+  ensures mb2.name == old(mb2.name)                // name of mb2 remains the same
+  ensures m.content == old(m.content)              // content of m remains the same
+  ensures m.sender == old(m.sender)                // sender of m remains the same
+  ensures m.recipients == old(m.recipients)        // recipients of m remain the same
   ensures isValid()
   {
     mb1.remove(m);
@@ -267,13 +267,13 @@ class MailApp {
   requires m !in trash.messages
   requires mb != trash
 
-  ensures mb.messages == old(mb.messages) - {m}
-  ensures trash.messages == old(trash.messages) + {m}
-  ensures mb.name == old(mb.name)
-  ensures trash.name == old(trash.name)
-  ensures m.content == old(m.content)
-  ensures m.sender == old(m.sender)
-  ensures m.recipients == old(m.recipients)
+  ensures mb.messages == old(mb.messages) - {m}        // m is removed from mb
+  ensures trash.messages == old(trash.messages) + {m}  // m is added to trash
+  ensures mb.name == old(mb.name)                      // name of mb remains the same
+  ensures trash.name == old(trash.name)                // name of trash remains the same
+  ensures m.content == old(m.content)                  // content of m remains the same
+  ensures m.sender == old(m.sender)                    // sender of m remains the same
+  ensures m.recipients == old(m.recipients)            // recipients of m remain the same
   ensures isValid()
   {
     moveMessage(m, mb, trash);
@@ -287,13 +287,13 @@ class MailApp {
   requires m !in sent.messages
   requires drafts != sent
 
-  ensures drafts.messages == old(drafts.messages) - {m}
-  ensures sent.messages == old(sent.messages) + {m}
-  ensures drafts.name == old(drafts.name)
-  ensures sent.name == old(sent.name)
-  ensures m.content == old(m.content)
-  ensures m.sender == old(m.sender)
-  ensures m.recipients == old(m.recipients)
+  ensures drafts.messages == old(drafts.messages) - {m}  // m is removed from drafts
+  ensures sent.messages == old(sent.messages) + {m}      // m is added to sent
+  ensures drafts.name == old(drafts.name)                // name of drafts remains the same
+  ensures sent.name == old(sent.name)                    // name of sent remains the same
+  ensures m.content == old(m.content)                    // content of m remains the same
+  ensures m.sender == old(m.sender)                      // sender of m remains the same
+  ensures m.recipients == old(m.recipients)              // recipients of m remain the same
   ensures isValid()
 
   {
