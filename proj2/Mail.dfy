@@ -243,7 +243,7 @@ class MailApp {
 
   requires isValid()
 
-  ensures exists m: Message :: drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
+  ensures exists m: Message :: fresh(m) && drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
                                m.sender == s                                      // s is the sender of m
   ensures isValid()
   {
