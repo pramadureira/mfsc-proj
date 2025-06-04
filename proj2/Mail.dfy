@@ -44,23 +44,36 @@ class Message
     ensures content == ""
     ensures sender == s
     ensures recipients == []
+  {
+    sender := s;
+    content := "";
+    recipients := [];
+    date := new Date();
+    id := new MessageId();
+  }
 
   // We added axiom to remove the warnings
-  method {:axiom} setContent(c: string)
+  method setContent(c: string)
     modifies this
     ensures content == c
     ensures {id, date, sender} == old({id, date, sender})
     ensures recipients == old(recipients)
+  {
+    content := c;
+  }
   
-  method {:axiom} setDate(d: Date)
+  method setDate(d: Date)
     modifies this
     ensures date == d
     ensures {id, sender} == old({id, sender})
     ensures recipients == old(recipients)
     ensures content == old(content)
+  {
+    date := d;
+  }
  
  
-  method {:axiom} addRecipient(p: nat, r: Address)
+  method addRecipient(p: nat, r: Address)
     modifies this
     requires p < |recipients|
     ensures |recipients| == |old(recipients)| + 1
@@ -69,7 +82,9 @@ class Message
     ensures forall i :: p < i < |recipients| ==> recipients[i] == old(recipients[i-1])
     ensures {id, date, sender} == old({id, date, sender})
     ensures content == old(content)
-  
+  {
+    recipients := recipients[..p] + [r] + recipients[p..];
+  }
 }
 
 //==========================================================
