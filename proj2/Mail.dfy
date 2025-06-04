@@ -239,7 +239,7 @@ class MailApp {
 
   // Adds a new message with sender s to the drafts mailbox
   method newMessage(s: Address)
-  modifies this, drafts
+  modifies drafts
 
   requires isValid()
 
@@ -276,7 +276,7 @@ class MailApp {
   // Moves message m from non-null mailbox mb to the trash mailbox
   // provided that mb is not the trash mailbox
   method deleteMessage (m: Message, mb: Mailbox)
-  modifies this, mb, trash
+  modifies mb, trash
   requires isValid()
   requires m in mb.messages
   requires m !in trash.messages
@@ -296,7 +296,7 @@ class MailApp {
 
   // Moves message m from the drafts mailbox to the sent mailbox
   method sendMessage(m: Message)
-  modifies this, drafts, sent
+  modifies drafts, sent
   requires isValid()
   requires m in drafts.messages
   requires m !in sent.messages
@@ -317,7 +317,7 @@ class MailApp {
 
   // Empties the trash mailbox
   method emptyTrash ()
-  modifies this, trash
+  modifies trash
   requires isValid()
   requires trash.messages != {} // We added this to ensure that we are not emptying an empty trash
   ensures trash.messages == {}
