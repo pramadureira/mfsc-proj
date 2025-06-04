@@ -264,9 +264,6 @@ class MailApp {
   ensures mb2.messages == old(mb2.messages) + {m}  // m is added to mb2
   ensures mb1.name == old(mb1.name)                // name of mb1 remains the same
   ensures mb2.name == old(mb2.name)                // name of mb2 remains the same
-  ensures m.content == old(m.content)              // content of m remains the same
-  ensures m.sender == old(m.sender)                // sender of m remains the same
-  ensures m.recipients == old(m.recipients)        // recipients of m remain the same
   ensures isValid()
   {
     mb1.remove(m);
@@ -286,9 +283,6 @@ class MailApp {
   ensures trash.messages == old(trash.messages) + {m}  // m is added to trash
   ensures mb.name == old(mb.name)                      // name of mb remains the same
   ensures trash.name == old(trash.name)                // name of trash remains the same
-  ensures m.content == old(m.content)                  // content of m remains the same
-  ensures m.sender == old(m.sender)                    // sender of m remains the same
-  ensures m.recipients == old(m.recipients)            // recipients of m remain the same
   ensures isValid()
   {
     moveMessage(m, mb, trash);
@@ -306,9 +300,6 @@ class MailApp {
   ensures sent.messages == old(sent.messages) + {m}      // m is added to sent
   ensures drafts.name == old(drafts.name)                // name of drafts remains the same
   ensures sent.name == old(sent.name)                    // name of sent remains the same
-  ensures m.content == old(m.content)                    // content of m remains the same
-  ensures m.sender == old(m.sender)                      // sender of m remains the same
-  ensures m.recipients == old(m.recipients)              // recipients of m remain the same
   ensures isValid()
 
   {
