@@ -4,6 +4,9 @@
   Project 2 
 
   Your name(s): 
+  Afonso Osório - 202108700
+  Pedro Madureira - 202108866
+  Sofia Pinto - 202108682
   ===============================================*/
 
 include "List.dfy"
