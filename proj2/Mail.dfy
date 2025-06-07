@@ -52,7 +52,6 @@ class Message
     id := new MessageId();
   }
 
-  // We added axiom to remove the warnings
   method setContent(c: string)
     modifies this
     ensures content == c
@@ -208,6 +207,7 @@ class MailApp {
   requires mb in userBoxes // Ensures that we will only try to delete a mailbox that actually exists in userBoxes
 
   ensures userBoxes == old(userBoxes) - {mb}
+  ensures systemBoxes() == old(systemBoxes())
   ensures isValid()
   {
     userBoxes := userBoxes - {mb};
@@ -243,7 +243,8 @@ class MailApp {
 
   requires isValid()
 
-  ensures exists m: Message :: fresh(m) && drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
+  ensures exists m: Message :: fresh(m) &&                                        // m has just been created
+                               drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
                                m.sender == s                                      // s is the sender of m
   ensures isValid()
   {
@@ -310,7 +311,7 @@ class MailApp {
   method emptyTrash ()
   modifies trash
   requires isValid()
-  requires trash.messages != {} // We added this to ensure that we are not emptying an empty trash
+  requires trash.messages != {} // Ensures that we are not emptying an empty trash
   ensures trash.messages == {}
   ensures trash.name == old(trash.name)
   ensures isValid()
