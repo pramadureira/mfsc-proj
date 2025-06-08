@@ -155,6 +155,7 @@ class MailApp {
   var trash: Mailbox
   var sent: Mailbox
   var spam: Mailbox
+  var spamFilter: set<Address>
 
   // userboxList implements userBoxes 
   var userboxList: List<Mailbox>
@@ -190,6 +191,7 @@ class MailApp {
   ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}         // Ensures sent has just been created with no messages and named "Sent"
   ensures fresh(spam) && spam.name == "Spam" && spam.messages == {}         // Ensures sent has just been created with no messages and named "Sent"
   ensures userBoxes == {}
+  ensures spamFilter == {}
 
   {
     inbox := new Mailbox("Inbox");
@@ -197,6 +199,7 @@ class MailApp {
     trash := new Mailbox("Trash");
     sent := new Mailbox("Sent");
     spam := new Mailbox("Spam");
+    spamFilter := {};
     userboxList := Nil;
 
     userBoxes := {};
@@ -320,6 +323,26 @@ class MailApp {
   ensures isValid()
   {
     trash.empty();
+  }
+
+  method addToSpam(a: Address)
+  modifies this
+  requires isValid()
+  requires a !in spamFilter
+  ensures spamFilter == old(spamFilter) + {a}
+  ensures isValid()
+  {
+    spamFilter := spamFilter + {a};
+  }
+
+  method removeFromFilter(a: Address)
+  modifies this
+  requires isValid()
+  requires a in spamFilter
+  ensures spamFilter == old(spamFilter) - {a}
+  ensures isValid()
+  {
+    spamFilter := spamFilter - {a};
   }
 }
 
