@@ -156,6 +156,7 @@ class MailApp {
   var sent: Mailbox
   var spam: Mailbox
   var spamFilter: set<Address>
+  var userAddresses: set<Address>
 
   // userboxList implements userBoxes 
   var userboxList: List<Mailbox>
@@ -303,6 +304,8 @@ class MailApp {
   requires isValid()
   requires m in drafts.messages
   requires m !in sent.messages
+  requires |m.recipients| > 0
+  requires m.sender in userAddresses
   requires drafts != sent
 
   ensures drafts.messages == old(drafts.messages) - {m}  // m is removed from drafts
@@ -313,6 +316,18 @@ class MailApp {
 
   {
     moveMessage(m, drafts, sent);
+  }
+
+  method getMessage(m: Message)
+  modifies inbox
+  requires isValid()
+  requires m !in inbox.messages
+  requires exists i :: 0 <= i < |m.recipients| && m.recipients[i] in userAddresses
+  
+  ensures inbox.messages == old(inbox.messages) + {m}
+  ensures isValid()
+  {
+    inbox.messages := inbox.messages + {m};
   }
 
   // Empties the trash mailbox
