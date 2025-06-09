@@ -193,9 +193,7 @@ class MailApp {
     // 2. none of the system mailboxes are in the set
     //    of user-defined mailboxes
     && systemBoxes() * userBoxes == {}
-    && (forall m :: m in inbox.messages ==> m.sender !in spamFilter)
-    && (forall m :: m in sent.messages ==> m.sender !in spamFilter)
-    && (forall m :: m in drafts.messages ==> m.sender !in spamFilter)
+    && (forall m :: m in inbox.messages + sent.messages + drafts.messages ==> m.sender !in spamFilter)
     && userAddresses * spamFilter == {}
 
     //----------------------------------------------------------
@@ -377,12 +375,12 @@ class MailApp {
     trash.empty();
   }
 
-  method filterMailbox(mb: Mailbox) returns (filtered: Mailbox)
+  method filterMailbox(name: string, messages: set<Message>) returns (filtered: Mailbox)
   modifies spam
   //requires isValid()
   requires |systemBoxes()| == 5
 
-  ensures filtered.messages == (set m | m in mb.messages && m.sender !in spamFilter :: m)
+  ensures filtered.messages == (set m | m in messages && m.sender !in spamFilter :: m)
   ensures spamFilter == old(spamFilter)
   ensures spam == old(spam)
   ensures systemBoxes() == old(systemBoxes())
@@ -390,14 +388,14 @@ class MailApp {
   ensures fresh(filtered)
   //ensures isValid()
   {
-    filtered := new Mailbox(mb.name);
-    var oldMessages := mb.messages;
+    filtered := new Mailbox(name);
+    var oldMessages := messages;
 
     while oldMessages != {}
       decreases oldMessages
-      invariant oldMessages <= mb.messages
+      invariant oldMessages <= messages
       invariant oldMessages * filtered.messages == {}
-      invariant filtered.messages == (set m | m in mb.messages - oldMessages && m.sender !in spamFilter :: m)
+      invariant filtered.messages == (set m | m in messages - oldMessages && m.sender !in spamFilter :: m)
     {
       var message :| message in oldMessages;
       if (message.sender !in spamFilter) {
@@ -411,7 +409,7 @@ class MailApp {
   }
 
   method addToSpam(a: Address)
-  modifies this, inbox, spam
+  modifies this, spam, userBoxes
   requires isValid()
   requires a !in spamFilter
   requires a !in userAddresses
@@ -420,17 +418,25 @@ class MailApp {
   ensures isValid()
   {
     spamFilter := spamFilter + {a};
-    inbox := filterMailbox(inbox);
-    sent := filterMailbox(sent);
-    drafts := filterMailbox(drafts);
-    
-    while (userboxList != Nil)
-      decreases userboxList
+    inbox := filterMailbox(inbox.name, inbox.messages);
+    sent := filterMailbox(sent.name, sent.messages);
+    drafts := filterMailbox(drafts.name, drafts.messages);
+
+    /*var curr := userboxList;
+    var temp: List<Mailbox> := Nil;
+
+    while curr != Nil
+      decreases len(curr)
       invariant isValid()
       invariant spamFilter == old(spamFilter) + {a}
     {
-      deleteMailbox(userboxList.head);
-    }
+      var h := curr.head;
+      var filtered := filterMailbox(h.name, h.messages);
+
+      temp := Cons(filtered, temp);
+
+      curr := curr.tail;
+    }*/
   }
 
   method removeFromFilter(a: Address)
