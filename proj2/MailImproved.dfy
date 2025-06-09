@@ -380,8 +380,13 @@ class MailApp {
   method filterMailbox(mb: Mailbox) returns (filtered: Mailbox)
   modifies spam
   //requires isValid()
+  requires |systemBoxes()| == 5
 
   ensures filtered.messages == (set m | m in mb.messages && m.sender !in spamFilter :: m)
+  ensures spamFilter == old(spamFilter)
+  ensures spam == old(spam)
+  ensures systemBoxes() == old(systemBoxes())
+  ensures |systemBoxes()| == 5
   ensures fresh(filtered)
   //ensures isValid()
   {
@@ -417,7 +422,15 @@ class MailApp {
     spamFilter := spamFilter + {a};
     inbox := filterMailbox(inbox);
     sent := filterMailbox(sent);
-    drafts := filterMailbox(trash);
+    drafts := filterMailbox(drafts);
+    
+    while (userboxList != Nil)
+      decreases userboxList
+      invariant isValid()
+      invariant spamFilter == old(spamFilter) + {a}
+    {
+      deleteMailbox(userboxList.head);
+    }
   }
 
   method removeFromFilter(a: Address)
