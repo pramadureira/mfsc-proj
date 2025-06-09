@@ -161,6 +161,22 @@ class MailApp {
   // userboxList implements userBoxes 
   var userboxList: List<Mailbox>
 
+  ghost function Contents(): set<Message>
+    reads this, inbox, drafts, spam, sent, trash, userBoxes
+  {
+    inbox.messages + drafts.messages + spam.messages + sent.messages + trash.messages + ContentsAux(userBoxes)
+  }
+
+  ghost function ContentsAux(currBoxes: set<Mailbox>): set<Message>
+  reads currBoxes
+  {
+    if currBoxes == {} then
+      {}
+    else
+      var mb :| mb in currBoxes;
+      mb.messages + ContentsAux(currBoxes - {mb})
+  }
+
   // Class invariant
   ghost predicate isValid()
   reads this
@@ -176,6 +192,8 @@ class MailApp {
     // 2. none of the system mailboxes are in the set
     //    of user-defined mailboxes
     && systemBoxes() * userBoxes == {}
+
+    && forall m: Message :: (m in Contents() && m.sender in spamFilter) ==> m in spam.messages
       
     //----------------------------------------------------------
     // Abstract-to-concrete state invariants
