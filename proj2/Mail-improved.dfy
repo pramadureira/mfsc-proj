@@ -144,22 +144,31 @@ class Mailbox { //Add specifications to the following
 //  MailApp
 //==========================================================
 class MailApp {
-  // abstract field for user defined boxes
+  // abstract fields
   ghost var userBoxes: set<Mailbox>
+  ghost var spamFilter: set<Address>
+  ghost var userAddresses: set<Address>
   
   // abstract function returning all system mailboxes in one set
   ghost function systemBoxes(): set<Mailbox>
     reads this
-  { {inbox, drafts, trash, sent} }
+  { {inbox, drafts, trash, sent, spam} }
 
   // the inbox, drafts, trash and sent are both abstract and concrete
   var inbox: Mailbox
   var drafts: Mailbox
   var trash: Mailbox
   var sent: Mailbox
+  var spam: Mailbox
 
   // userboxList implements userBoxes 
   var userboxList: List<Mailbox>
+
+  // spamList implements spamFilter 
+  var spamList: List<Address>
+
+  // addressesList implements userAddresses 
+  var addressesList: List<Address>
 
   // Class invariant
   ghost predicate isValid()
@@ -171,35 +180,52 @@ class MailApp {
     // Abstract state invariants
     //----------------------------------------------------------
     // 1. all system mailboxes (inbox, ..., sent) are distinct
-    && |systemBoxes()| == 4
+    && |systemBoxes()| == 5
 
     // 2. none of the system mailboxes are in the set
     //    of user-defined mailboxes
     && systemBoxes() * userBoxes == {}
+
+    // 3. none of the user addresses are in the set
+    //    of spam addresses
+    && spamFilter * userAddresses == {}
       
     //----------------------------------------------------------
     // Abstract-to-concrete state invariants
     //----------------------------------------------------------
     // userBoxes is the set of mailboxes in userboxList
     && userBoxes == elements(userboxList)
+    // spamSet is the set of addresses in spamList
+    && spamFilter == elements(spamList)
+    // userAddresses is the set of addresses in addressesList
+    && userAddresses == elements(addressesList)
   }
 
-  constructor ()
+  constructor (addr : List<Address>)
+  requires addr != Nil                                                      // A MailApp with no address cannot be created
+
   ensures isValid()
   ensures fresh(inbox) && inbox.name == "Inbox" && inbox.messages == {}     // Ensures inbox has just been created with no messages and named "Inbox"
   ensures fresh(drafts) && drafts.name == "Drafts" && drafts.messages == {} // Ensures drafts has just been created with no messages and named "Drafts"
   ensures fresh(trash) && trash.name == "Trash" && trash.messages == {}     // Ensures trash has just been created with no messages and named "Trash"
   ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}         // Ensures sent has just been created with no messages and named "Sent"
+  ensures fresh(spam) && spam.name == "Spam" && spam.messages == {}         // Ensures spam has just been created with no messages and named "Spam"
   ensures userBoxes == {}
-
+  ensures spamFilter == {}
+  ensures userAddresses == elements(addr)
   {
     inbox := new Mailbox("Inbox");
     drafts := new Mailbox("Drafts");
     trash := new Mailbox("Trash");
     sent := new Mailbox("Sent");
+    spam := new Mailbox("Spam");
     userboxList := Nil;
+    spamList := Nil;
+    addressesList := addr;
 
     userBoxes := {};
+    spamFilter := {};
+    userAddresses := elements(addr);
   }
 
   // Deletes user-defined mailbox mb
@@ -241,17 +267,16 @@ class MailApp {
 
 
   // Adds a new message with sender s to the drafts mailbox
-  method newMessage(s: Address)
+  method newMessage(s: Address) returns (m: Message)
   modifies drafts
-
   requires isValid()
 
-  ensures exists m: Message :: fresh(m) &&                                        // m has just been created
-                               drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
-                               m.sender == s                                      // s is the sender of m
+  ensures fresh(m)                                        // m has just been created
+  ensures drafts.messages == old(drafts.messages) + {m}   // the only message added to drafts was m
+  ensures m.sender == s                                   // s is the sender of m
   ensures isValid()
   {
-    var m := new Message(s);
+    m := new Message(s);
     drafts.add(m);
   }
 
@@ -300,6 +325,7 @@ class MailApp {
   requires m !in sent.messages
   requires drafts != sent
   requires m.recipients != []                            // A message can't be send if it doesn't have receipients
+  requires m.sender in userAddresses                     // Only the owner of the MailApp can send emails
 
   ensures drafts.messages == old(drafts.messages) - {m}  // m is removed from drafts
   ensures sent.messages == old(sent.messages) + {m}      // m is added to sent
@@ -322,15 +348,97 @@ class MailApp {
   {
     trash.empty();
   }
-}
 
+  // Receives a message from the exterior
+  method getMessage(m: Message)
+  modifies inbox, spam
+  requires isValid()
+  //requires m !in inbox.messages         //TODO: Change to, message not in Contents
+  requires exists i :: 0 <= i < |m.recipients| && m.recipients[i] in userAddresses
+  
+  ensures if (m.sender in spamFilter) then
+            (spam.messages == old(spam.messages) + {m} &&
+             inbox.messages == old(inbox.messages))
+          else
+            (inbox.messages == old(inbox.messages) + {m} &&
+             spam.messages == old(spam.messages))
+  ensures isValid()
+  {
+    
+    if (contains(spamList, m.sender)) {
+      spam.messages := spam.messages + {m};
+    }
+    else {
+      inbox.messages := inbox.messages + {m};
+    }
+  }
+
+  /* method filterMailbox(mb: Mailbox) returns (filtered: Mailbox)
+  modifies spam
+  requires isValid()
+
+  ensures filtered.messages == (set m | m in mb.messages && m.sender !in spamFilter :: m)
+  ensures isValid()
+  {
+    filtered := new Mailbox(mb.name);
+    var oldMessages := mb.messages;
+
+    while oldMessages != {}
+      decreases oldMessages
+      invariant oldMessages <= mb.messages
+      invariant oldMessages * filtered.messages == {}
+      invariant filtered.messages == (set m | m in mb.messages - oldMessages && m.sender !in spamFilter :: m)
+    {
+      var message :| message in oldMessages;
+      if (message.sender !in spamFilter) {
+        filtered.add(message);
+      }
+      else if (message !in spam.messages) {
+        spam.add(message);
+      }
+      oldMessages := oldMessages - {message};
+    }
+  } */
+
+  method addToSpam(a: Address)
+  modifies this
+  requires isValid()
+  requires a !in userAddresses
+  requires a !in spamFilter
+  ensures spamFilter == old(spamFilter) + {a}
+  ensures systemBoxes() == old(systemBoxes())
+  ensures userAddresses == old(userAddresses)
+  ensures userBoxes == old(userBoxes)
+  ensures isValid()
+  {
+    spamList := Cons(a, spamList);
+
+    spamFilter := spamFilter + {a};
+  }
+
+  method removeFromSpam(a: Address)
+  modifies this
+  requires isValid()
+  requires a in spamFilter
+  ensures spamFilter == old(spamFilter) - {a}
+  ensures systemBoxes() == old(systemBoxes())
+  ensures userAddresses == old(userAddresses)
+  ensures userBoxes == old(userBoxes)
+  ensures isValid()
+  {
+    spamList := remove(spamList, a);
+
+    spamFilter := spamFilter - {a};
+  }
+}
 
 // Test
 /* Can be used to test your code. */
 
 method test() {
 
-  var ma := new MailApp(); 
+  var a := new Address();
+  var ma := new MailApp(Cons(a, Nil)); 
   assert ma.inbox.name == "Inbox";
   assert ma.drafts.name == "Drafts";
   assert ma.trash.name == "Trash";
@@ -345,7 +453,7 @@ method test() {
                                mb.messages == {};
 
   var s := new Address();
-  ma.newMessage(s);        
-  assert exists nw: Message :: ma.drafts.messages == {nw};
+  var m := ma.newMessage(s);        
+  assert ma.drafts.messages == {m};
 }
 

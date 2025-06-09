@@ -86,4 +86,13 @@ module List {
       if x == h then remove(t, x)
       else Cons(h, remove(t, x))
   }
+
+  function contains<T(==)>(l: List<T>, x: T): bool
+    decreases l
+    ensures contains(l, x) <==> x in elements(l)
+  {
+    match l
+    case Nil => false
+    case Cons(h, t) => if h == x then true else contains(t, x)
+  }
 }
