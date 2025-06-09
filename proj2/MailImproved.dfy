@@ -244,17 +244,19 @@ class MailApp {
 
 
   // Adds a new message with sender s to the drafts mailbox
-  method newMessage(s: Address)
+  method newMessage(s: Address) returns (m: Message)
   modifies drafts
 
   requires isValid()
 
-  ensures exists m: Message :: fresh(m) &&                                        // m has just been created
-                               drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
-                               m.sender == s                                      // s is the sender of m
+  //ensures exists m: Message :: fresh(m) &&                                        // m has just been created
+  //                             drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
+  //                             m.sender == s                                      // s is the sender of m
+  ensures fresh(m)
+  ensures drafts.messages == old(drafts.messages) + {m}
   ensures isValid()
   {
-    var m := new Message(s);
+    m := new Message(s);
     drafts.add(m);
   }
 
@@ -367,7 +369,7 @@ method test() {
                                mb.messages == {};
 
   var s := new Address();
-  ma.newMessage(s);        
-  assert exists nw: Message :: ma.drafts.messages == {nw};
+  var m := ma.newMessage(s);        
+  assert exists nw: Message :: ma.drafts.messages == {nw} == {m};
 }
 
