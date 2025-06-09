@@ -342,6 +342,33 @@ class MailApp {
     trash.empty();
   }
 
+  method filterMailbox(mb: Mailbox) returns (filtered: Mailbox)
+  modifies spam
+  requires isValid()
+
+  ensures filtered.messages == (set m | m in mb.messages && m.sender !in spamFilter :: m)
+  ensures isValid()
+  {
+    filtered := new Mailbox(mb.name);
+    var oldMessages := mb.messages;
+
+    while oldMessages != {}
+      decreases oldMessages
+      invariant oldMessages <= mb.messages
+      invariant oldMessages * filtered.messages == {}
+      invariant filtered.messages == (set m | m in mb.messages - oldMessages && m.sender !in spamFilter :: m)
+    {
+      var message :| message in oldMessages;
+      if (message.sender !in spamFilter) {
+        filtered.add(message);
+      }
+      else if (message !in spam.messages) {
+        spam.add(message);
+      }
+      oldMessages := oldMessages - {message};
+    }
+  }
+
   method addToSpam(a: Address)
   modifies this
   requires isValid()
