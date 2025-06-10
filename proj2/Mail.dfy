@@ -77,7 +77,7 @@ class Message
  
   method addRecipient(p: nat, r: Address)
     modifies this
-    requires p < |recipients|
+    requires p <= |recipients|
     ensures |recipients| == |old(recipients)| + 1
     ensures forall i :: 0 <= i < p ==> recipients[i] == old(recipients[i])
     ensures recipients[p] == r
