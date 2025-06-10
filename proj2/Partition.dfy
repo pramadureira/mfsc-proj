@@ -4,19 +4,22 @@
   Project 2 
 
   Your name(s): 
+  Afonso Osório - 202108700
+  Pedro Madureira - 202108866
+  Sofia Pinto - 202108682
   ===============================================*/
 
 
   /* Write your implementation here */
-  method Partition(a: array<int>, s: nat, l: nat, X: int) returns (m: nat, n: nat)
-    modifies a
-    requires s < l < a.Length
-    ensures m <= n <= a.Length
-    ensures old(a[..s]) == a[..s]
-    ensures forall x :: s <= x < m ==> a[x] < X
-    ensures forall x :: m <= x < n ==> a[x] == X
-    ensures forall x :: n <= x < l ==> a[x] > X
-    ensures old(a[l..]) == a[l..]
+  method Partition(A: array<int>, s: nat, l: nat, X: int) returns (m: nat, n: nat)
+    modifies A
+    requires s <= l < A.Length
+    ensures m <= n < A.Length
+    ensures old(A[..s]) == A[..s]
+    ensures forall x :: s <= x < m ==> A[x] < X
+    ensures forall x :: m <= x < n ==> A[x] == X
+    ensures forall x :: n <= x < l ==> A[x] > X
+    ensures old(A[l..]) == A[l..]
   {
     m := s;
     n := s;
@@ -24,24 +27,24 @@
 
     while n < k
     decreases k - n
-      invariant s <= m <= n <= k <= l <= a.Length
-      invariant forall x :: s <= x < m ==> a[x] < X
-      invariant forall x :: m <= x < n ==> a[x] == X
-      invariant forall x :: k <= x < l ==> a[x] > X
-      invariant multiset(a[..]) == multiset(old(a[..]))
-      invariant a[..s] == old(a[..s])
-      invariant a[l..] == old(a[l..])
+      invariant s <= m <= n <= k <= l <= A.Length
+      invariant forall x :: s <= x < m ==> A[x] < X
+      invariant forall x :: m <= x < n ==> A[x] == X
+      invariant forall x :: k <= x < l ==> A[x] > X
+      invariant multiset(A[..]) == multiset(old(A[..]))
+      invariant A[..s] == old(A[..s])
+      invariant A[l..] == old(A[l..])
     {
 
-      if a[n] < X
+      if A[n] < X
       {
-        a[m], a[n] := a[n], a[m];
+        A[m], A[n] := A[n], A[m];
         m := m+1;
         n := n+1;
       }
-      else if a[n] > X
+      else if A[n] > X
       {
-        a[n], a[k-1] := a[k-1], a[n];
+        A[n], A[k-1] := A[k-1], A[n];
         k := k-1;
       }
       else
