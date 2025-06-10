@@ -154,6 +154,19 @@ class MailApp {
     reads this
   { {inbox, drafts, trash, sent, spam} }
 
+  ghost function allMessages(): set<Message>
+    reads this, inbox, drafts, trash, sent, spam, userBoxes
+  { inbox.messages + drafts.messages + trash.messages + sent.messages + spam.messages + messages(userBoxes)}
+
+  ghost function messages(currBoxes: set<Mailbox>): set<Message>
+    reads currBoxes
+  {
+    if currBoxes == {} then {}
+    else
+      var mb :| mb in currBoxes;
+      mb.messages + messages(currBoxes - {mb})
+  }
+
   // the inbox, drafts, trash and sent are both abstract and concrete
   var inbox: Mailbox
   var drafts: Mailbox
@@ -237,6 +250,8 @@ class MailApp {
 
   ensures userBoxes == old(userBoxes) - {mb}
   ensures systemBoxes() == old(systemBoxes())
+  ensures userAddresses == old(userAddresses)
+  ensures spamFilter == old(spamFilter)
   ensures isValid()
   {
     userBoxes := userBoxes - {mb};
@@ -257,6 +272,8 @@ class MailApp {
                                 userBoxes == old(userBoxes) + {mb} &&   // the only new mailbox in userBoxes is mb
                                 mb.messages == {}                       // mb has no messages in it
   ensures systemBoxes() == old(systemBoxes())
+  ensures userAddresses == old(userAddresses)
+  ensures spamFilter == old(spamFilter)
   ensures isValid()
   {
     var mb := new Mailbox(n);
@@ -353,7 +370,7 @@ class MailApp {
   method getMessage(m: Message)
   modifies inbox, spam
   requires isValid()
-  //requires m !in inbox.messages         //TODO: Change to, message not in Contents
+  requires m !in allMessages()
   requires exists i :: 0 <= i < |m.recipients| && m.recipients[i] in userAddresses
   
   ensures if (m.sender in spamFilter) then
@@ -372,33 +389,6 @@ class MailApp {
       inbox.messages := inbox.messages + {m};
     }
   }
-
-  /* method filterMailbox(mb: Mailbox) returns (filtered: Mailbox)
-  modifies spam
-  requires isValid()
-
-  ensures filtered.messages == (set m | m in mb.messages && m.sender !in spamFilter :: m)
-  ensures isValid()
-  {
-    filtered := new Mailbox(mb.name);
-    var oldMessages := mb.messages;
-
-    while oldMessages != {}
-      decreases oldMessages
-      invariant oldMessages <= mb.messages
-      invariant oldMessages * filtered.messages == {}
-      invariant filtered.messages == (set m | m in mb.messages - oldMessages && m.sender !in spamFilter :: m)
-    {
-      var message :| message in oldMessages;
-      if (message.sender !in spamFilter) {
-        filtered.add(message);
-      }
-      else if (message !in spam.messages) {
-        spam.add(message);
-      }
-      oldMessages := oldMessages - {message};
-    }
-  } */
 
   method addToSpam(a: Address)
   modifies this
