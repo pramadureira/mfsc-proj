@@ -213,9 +213,9 @@ class MailApp {
   ensures systemBoxes() == old(systemBoxes())
   ensures isValid()
   {
-    userBoxes := userBoxes - {mb};
-
     userboxList := remove(userboxList, mb);
+
+    userBoxes := userBoxes - {mb};
   }
 
   // Adds a new mailbox with name n to set of user-defined mailboxes
@@ -234,9 +234,9 @@ class MailApp {
   ensures isValid()
   {
     var mb := new Mailbox(n);
-    userBoxes := userBoxes + {mb};
-
     userboxList := Cons(mb, userboxList);
+
+    userBoxes := userBoxes + {mb};
   }
 
 
