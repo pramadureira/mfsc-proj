@@ -14,7 +14,7 @@
   method Partition(A: array<int>, s: nat, l: nat, X: int) returns (m: nat, n: nat)
     modifies A
     requires s <= l < A.Length
-    ensures s <= m <= n <= l
+    ensures s <= m <= n <= l < A.Length
     ensures old(A[..s]) == A[..s]
     ensures forall x :: s <= x < m ==> A[x] < X
     ensures forall x :: m <= x < n ==> A[x] == X
