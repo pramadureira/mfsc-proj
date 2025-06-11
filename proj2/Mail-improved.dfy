@@ -311,9 +311,9 @@ class MailApp {
   method moveMessage (m: Message, mb1: Mailbox, mb2: Mailbox)
   modifies mb1, mb2
   requires isValid()
-  requires m in mb1.messages
-  requires m !in mb2.messages
-  requires mb1 != mb2
+  requires m in mb1.messages                       // m must be in mb1, in order to be removed
+  requires m !in mb2.messages                      // m must not be in mb2, in order to be added to it
+  requires mb1 != mb2                              // mb1 and mb2 must be different
 
   ensures mb1.messages == old(mb1.messages) - {m}  // m is removed from mb1
   ensures mb2.messages == old(mb2.messages) + {m}  // m is added to mb2
@@ -330,9 +330,9 @@ class MailApp {
   method deleteMessage (m: Message, mb: Mailbox)
   modifies mb, trash
   requires isValid()
-  requires m in mb.messages
-  requires m !in trash.messages
-  requires mb != trash
+  requires m in mb.messages                            // m must be in mb, in order to be removed
+  requires m !in trash.messages                        // m must not be in trash, in order to be added to it
+  requires mb != trash                                 // mb must not be trash
 
   ensures mb.messages == old(mb.messages) - {m}        // m is removed from mb
   ensures trash.messages == old(trash.messages) + {m}  // m is added to trash
@@ -347,10 +347,10 @@ class MailApp {
   method sendMessage(m: Message)
   modifies drafts, sent
   requires isValid()
-  requires m in drafts.messages
-  requires m !in sent.messages
-  requires drafts != sent
-  requires m.recipients != []                            // A message can't be send if it doesn't have receipients
+  requires m in drafts.messages                          // m must be in drafts, in order to be removed
+  requires m !in sent.messages                           // m must not be in sent, in order to be added to it
+  requires drafts != sent                                // drafts and sent must be different
+  requires m.recipients != []                            // A message can't be sent if it doesn't have receipients
   requires m.sender in userAddresses                     // Only the owner of the MailApp can send emails
 
   ensures drafts.messages == old(drafts.messages) - {m}  // m is removed from drafts
@@ -367,9 +367,9 @@ class MailApp {
   method emptyTrash ()
   modifies trash
   requires isValid()
-  requires trash.messages != {} // Ensures that we are not emptying an empty trash
-  ensures trash.messages == {}
-  ensures trash.name == old(trash.name)
+  requires trash.messages != {}           // Ensures that we are not emptying an empty trash
+  ensures trash.messages == {}            // trash is now empty of messages
+  ensures trash.name == old(trash.name)   // trash name remains the same
   ensures isValid()
   {
     trash.empty();
