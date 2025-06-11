@@ -422,6 +422,7 @@ class MailApp {
   modifies spam, mb
   requires isValid()
   requires mb != spam
+  requires mb in systemBoxes() + userBoxes
 
   ensures forall m :: m in old(mb.messages) && m.sender !in spamFilter ==> m in mb.messages
   ensures forall m :: m in old(mb.messages) && m.sender in spamFilter ==> (m !in mb.messages && m in spam.messages)
@@ -514,5 +515,29 @@ method test() {
 
   assert get in ma.spam.messages;
   assert get !in umb.messages;
+
+  var initialFilter := new Message(spammer);
+  initialFilter.addRecipient(0, a);
+  ma.getMessage(initialFilter);
+  ma.deleteMailbox(umb);
+
+  assert initialFilter in ma.spam.messages;
+
+  ma.deleteMessage(initialFilter, ma.spam);
+
+  assert initialFilter in ma.trash.messages;
+  assert initialFilter !in ma.spam.messages;
+
+  var noLongerFiltered := new Message(spammer);
+  noLongerFiltered.addRecipient(0, a);
+  ma.removeFromSpam(spammer);
+
+  ma.getMessage(noLongerFiltered);
+
+  assert noLongerFiltered in ma.inbox.messages;
+
+  ma.emptyTrash();
+
+  ma.getMessage(initialFilter);
 }
 
