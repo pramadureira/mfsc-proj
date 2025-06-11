@@ -249,7 +249,11 @@ class MailApp {
   requires mb in userBoxes // Ensures that we will only try to delete a mailbox that actually exists in userBoxes
 
   ensures userBoxes == old(userBoxes) - {mb}
-  ensures systemBoxes() == old(systemBoxes())
+  ensures inbox == old(inbox)
+  ensures drafts == old(drafts)
+  ensures sent == old(sent)
+  ensures trash == old(trash)
+  ensures spam == old(spam)
   ensures userAddresses == old(userAddresses)
   ensures spamFilter == old(spamFilter)
   ensures isValid()
@@ -271,7 +275,11 @@ class MailApp {
           mb.name == n &&                         // mb is called n
           userBoxes == old(userBoxes) + {mb} &&   // the only new mailbox in userBoxes is mb
           mb.messages == {}                       // mb has no messages in it
-  ensures systemBoxes() == old(systemBoxes())
+  ensures inbox == old(inbox)
+  ensures drafts == old(drafts)
+  ensures sent == old(sent)
+  ensures trash == old(trash)
+  ensures spam == old(spam)
   ensures userAddresses == old(userAddresses)
   ensures spamFilter == old(spamFilter)
   ensures isValid()
@@ -446,7 +454,11 @@ class MailApp {
   requires isValid()
   requires a in spamFilter
   ensures spamFilter == old(spamFilter) - {a}
-  ensures systemBoxes() == old(systemBoxes())
+  ensures inbox == old(inbox)
+  ensures drafts == old(drafts)
+  ensures sent == old(sent)
+  ensures trash == old(trash)
+  ensures spam == old(spam)
   ensures userAddresses == old(userAddresses)
   ensures userBoxes == old(userBoxes)
   ensures isValid()
