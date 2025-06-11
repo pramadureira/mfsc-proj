@@ -21,6 +21,7 @@
   - some new guarantees to the isValid predicate associated with these new functionalities
   - additional assertions and method calls in the test method to ensure all our additions work as expected
 
+  A `contains` function was also added to List.dfy to check for a given element's presence in a list of its type.
   Notice that we attempted to apply `filterMailbox` automatically to every mailbox in the app when an address is added to the `spamFilter`. This also involved adding a condition to isValid that ensured that, at all times, messages belonging to spam addresses were in the spam mailbox. This worked as expected for system boxes, but could not be successfully implemented for user boxes due to framing problems.
 
   Important Warning: In order for the `test` method to be fully verified, you should increase Dafny's Verification Time Limit (in the Settings). In our computers, 60 seconds was enough.
