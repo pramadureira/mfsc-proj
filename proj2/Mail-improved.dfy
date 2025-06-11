@@ -77,7 +77,7 @@ class Message
  
   method addRecipient(p: nat, r: Address)
     modifies this
-    requires p < |recipients|
+    requires p <= |recipients|
     ensures |recipients| == |old(recipients)| + 1
     ensures forall i :: 0 <= i < p ==> recipients[i] == old(recipients[i])
     ensures recipients[p] == r
@@ -397,6 +397,8 @@ class MailApp {
   requires a !in spamFilter
   ensures spamFilter == old(spamFilter) + {a}
   ensures systemBoxes() == old(systemBoxes())
+  //ensures (forall mb :: mb in systemBoxes() ==> mb.messages == old(mb.messages))
+  ensures inbox.messages == old(inbox.messages)
   ensures userAddresses == old(userAddresses)
   ensures userBoxes == old(userBoxes)
   ensures isValid()
@@ -476,5 +478,22 @@ method test() {
   var s := new Address();
   var m := ma.newMessage(s);        
   assert ma.drafts.messages == {m};
+
+  var spammer := new Address();
+  var get := new Message(spammer);
+  get.addRecipient(0, a);
+
+  ma.getMessage(get);
+
+  assert get in ma.inbox.messages;
+
+  ma.addToSpam(spammer);
+
+  assert get in ma.inbox.messages; //DOES NOT HOLD
+  assert get.sender in ma.spamFilter;
+
+  ma.filterMailbox(ma.inbox);
+
+  assert get in ma.spam.messages;
 }
 
