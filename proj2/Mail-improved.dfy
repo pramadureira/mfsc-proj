@@ -7,6 +7,8 @@
   Afonso Osório - 202108700
   Pedro Madureira - 202108866
   Sofia Pinto - 202108682
+
+  For 
   ===============================================*/
 
 include "List.dfy"
@@ -442,13 +444,13 @@ class MailApp {
   method filterMailbox(mb: Mailbox)
   modifies spam, mb
   requires isValid()
-  requires mb != spam
-  requires mb in systemBoxes() + userBoxes
+  requires mb != spam                                                                                                 // mb must not be spam (because spam cannot be filtered)
+  requires mb in systemBoxes() + userBoxes                                                                            // mb must be an existing mailbox in the system
 
-  ensures forall m :: m in old(mb.messages) && m.sender !in spamFilter ==> m in mb.messages
-  ensures forall m :: m in old(mb.messages) && m.sender in spamFilter ==> (m !in mb.messages && m in spam.messages)
-  ensures spam.name == old(spam.name)
-  ensures mb.name == old(mb.name)
+  ensures forall m :: m in old(mb.messages) && m.sender !in spamFilter ==> m in mb.messages                           // Every message that was in mb whose address is not in the spamFilter, remains in mb
+  ensures forall m :: m in old(mb.messages) && m.sender in spamFilter ==> (m !in mb.messages && m in spam.messages)   // Every message that was in mb whose address is in the spamFilter, is removed from mb and added to the spam mailbox
+  ensures spam.name == old(spam.name)                                                                                 // spam's name remains the same
+  ensures mb.name == old(mb.name)                                                                                     // mb's name remains the same
   ensures isValid()
   {
     var oldMessages := mb.messages;
