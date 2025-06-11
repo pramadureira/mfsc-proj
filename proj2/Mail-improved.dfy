@@ -8,7 +8,22 @@
   Pedro Madureira - 202108866
   Sofia Pinto - 202108682
 
-  For 
+
+  For the improved version, we decided to add a spam mechanism, that allows the owner of the MailApp to mark some addresses as spam, or remove them from that list. We also noticed that the MailApp was missing the addresses of its owner, so we made sure to add that as well. Moreover, we ensured that none of the MailApp’s addresses were ever marked as spam, since that would be unfortunate.
+  In summary, these were the functionalities that we added to the MailApp:
+  - new ghost field `spamFilter`, whose implementation is `spamList`, to store the addresses marked as spam
+  - new ghost field `userAddresses`, whose implementation is `addressesList`, to store the addresses of the MailApp’s owner
+  - new method `getMessage` that receives a message from the exterior. Its destination is dependent on the sender belonging to the spam filter (spam) or not (inbox)
+  - new method `addToSpam` that adds an address to the spamFilter
+  - new method `removeFromSpam` that removes an address from the spamFilter
+  - new method `filterMailbox`, that filters a given mailbox by removing all its messages that belong to a spam address and adds them to the spam mailbox
+  - some new pre and post conditions associated with these new functionalities
+  - some new guarantees to the isValid predicate associated with these new functionalities
+  - additional assertions and method calls in the test method to ensure all our additions work as expected
+
+  Notice that we attempted to apply `filterMailbox` automatically to every mailbox in the app when an address is added to the `spamFilter`. This also involved adding a condition to isValid that ensured that, at all times, messages belonging to spam addresses were in the spam mailbox. This worked as expected for system boxes, but could not be successfully implemented for user boxes due to framing problems.
+
+  Important Warning: In order for the `test` method to be fully verified, you should increase Dafny's Verification Time Limit (in the Settings). In our computers, 60 seconds was enough.
   ===============================================*/
 
 include "List.dfy"
