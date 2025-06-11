@@ -112,9 +112,9 @@ class Mailbox { //Add specifications to the following
   // Adds message m to the mailbox
   method add(m: Message)
     modifies this
-    requires m !in messages // Ensures that we will not add a repeated message to the same mailbox
-    ensures messages == old(messages) + {m}
-    ensures name == old(name)
+    requires m !in messages                     // Ensures that we will not add a repeated message to the same mailbox
+    ensures messages == old(messages) + {m}     // The only change to messages is the addition of m
+    ensures name == old(name)                   // Mailbox's name remains the same
   {    
     messages := messages + { m };
   }
@@ -123,8 +123,8 @@ class Mailbox { //Add specifications to the following
   // m need not be in the mailbox 
   method remove(m: Message)
     modifies this
-    ensures messages == old(messages) - {m}
-    ensures name == old(name)
+    ensures messages == old(messages) - {m}     // The only change to messages is the removal of m
+    ensures name == old(name)                   // Mailbox's name remains the same
   {
     messages := messages - { m };
   }
@@ -132,9 +132,9 @@ class Mailbox { //Add specifications to the following
   // Empties the mailbox
   method empty()
     modifies this
-    requires messages != {} // Ensures that we will not try to empty an already empty mailbox
-    ensures messages == {}
-    ensures name == old(name)
+    requires messages != {}       // Ensures that we will not try to empty an already empty mailbox
+    ensures messages == {}        // The Mailbox will now be empty of messages
+    ensures name == old(name)     // Mailbox's name remains the same
   {
     messages := {};
   }
@@ -223,9 +223,9 @@ class MailApp {
   ensures fresh(trash) && trash.name == "Trash" && trash.messages == {}     // Ensures trash has just been created with no messages and named "Trash"
   ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}         // Ensures sent has just been created with no messages and named "Sent"
   ensures fresh(spam) && spam.name == "Spam" && spam.messages == {}         // Ensures spam has just been created with no messages and named "Spam"
-  ensures userBoxes == {}
-  ensures spamFilter == {}
-  ensures userAddresses == elements(addr)
+  ensures userBoxes == {}                                                   // Ensures there are no user boxes
+  ensures spamFilter == {}                                                  // Ensures there are no addresses in the spamFilter
+  ensures userAddresses == elements(addr)                                   // The user addresses are the ones received as input
   {
     inbox := new Mailbox("Inbox");
     drafts := new Mailbox("Drafts");
@@ -299,6 +299,7 @@ class MailApp {
   ensures fresh(m)                                        // m has just been created
   ensures drafts.messages == old(drafts.messages) + {m}   // the only message added to drafts was m
   ensures m.sender == s                                   // s is the sender of m
+  ensures drafts.name == old(drafts.name)
   ensures isValid()
   {
     m := new Message(s);
@@ -387,6 +388,8 @@ class MailApp {
           else
             (inbox.messages == old(inbox.messages) + {m} &&
              spam.messages == old(spam.messages))
+  ensures inbox.name == old(inbox.name)
+  ensures spam.name == old(spam.name)
   ensures isValid()
   {
     
@@ -426,6 +429,8 @@ class MailApp {
 
   ensures forall m :: m in old(mb.messages) && m.sender !in spamFilter ==> m in mb.messages
   ensures forall m :: m in old(mb.messages) && m.sender in spamFilter ==> (m !in mb.messages && m in spam.messages)
+  ensures spam.name == old(spam.name)
+  ensures mb.name == old(mb.name)
   ensures isValid()
   {
     var oldMessages := mb.messages;
@@ -433,6 +438,8 @@ class MailApp {
     while oldMessages != {}
       decreases oldMessages
       invariant oldMessages <= mb.messages
+      invariant spam.name == old(spam.name)
+      invariant mb.name == old(mb.name)
       invariant (forall m :: m in old(mb.messages) - oldMessages && m.sender !in spamFilter ==> m in mb.messages)
       invariant (forall m :: m in old(mb.messages) - oldMessages && m.sender in spamFilter ==> m !in mb.messages && m in spam.messages)
     {

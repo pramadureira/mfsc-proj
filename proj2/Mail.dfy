@@ -112,9 +112,9 @@ class Mailbox { //Add specifications to the following
   // Adds message m to the mailbox
   method add(m: Message)
     modifies this
-    requires m !in messages // Ensures that we will not add a repeated message to the same mailbox
-    ensures messages == old(messages) + {m}
-    ensures name == old(name)
+    requires m !in messages                   // Ensures that we will not add a repeated message to the same mailbox
+    ensures messages == old(messages) + {m}   // The only change to messages is the addition of m
+    ensures name == old(name)                 // Mailbox's name remains the same
   {    
     messages := messages + { m };
   }
@@ -123,8 +123,8 @@ class Mailbox { //Add specifications to the following
   // m need not be in the mailbox 
   method remove(m: Message)
     modifies this
-    ensures messages == old(messages) - {m}
-    ensures name == old(name)
+    ensures messages == old(messages) - {m}   // The only change to messages is the removal of m
+    ensures name == old(name)                 // Mailbox's name remains the same
   {
     messages := messages - { m };
   }
@@ -132,9 +132,9 @@ class Mailbox { //Add specifications to the following
   // Empties the mailbox
   method empty()
     modifies this
-    requires messages != {} // Ensures that we will not try to empty an already empty mailbox
-    ensures messages == {}
-    ensures name == old(name)
+    requires messages != {}       // Ensures that we will not try to empty an already empty mailbox
+    ensures messages == {}        // The Mailbox will now be empty of messages
+    ensures name == old(name)     // Mailbox's name remains the same
   {
     messages := {};
   }
@@ -190,7 +190,7 @@ class MailApp {
   ensures fresh(drafts) && drafts.name == "Drafts" && drafts.messages == {} // Ensures drafts has just been created with no messages and named "Drafts"
   ensures fresh(trash) && trash.name == "Trash" && trash.messages == {}     // Ensures trash has just been created with no messages and named "Trash"
   ensures fresh(sent) && sent.name == "Sent" && sent.messages == {}         // Ensures sent has just been created with no messages and named "Sent"
-  ensures userBoxes == {}
+  ensures userBoxes == {}                                                   // Ensures there are no user boxes
 
   {
     inbox := new Mailbox("Inbox");
@@ -207,18 +207,18 @@ class MailApp {
   modifies this
 
   requires isValid()
-  requires mb in userBoxes // Ensures that we will only try to delete a mailbox that actually exists in userBoxes
+  requires mb in userBoxes                      // Ensures that we will only try to delete a mailbox that actually exists in userBoxes
 
-  ensures userBoxes == old(userBoxes) - {mb}
-  ensures inbox == old(inbox)
-  ensures drafts == old(drafts)
-  ensures sent == old(sent)
-  ensures trash == old(trash)
+  ensures userBoxes == old(userBoxes) - {mb}    // The only change to userBoxes is the removal of mb
+  ensures inbox == old(inbox)                   // Inbox remains the same
+  ensures drafts == old(drafts)                 // Drafts remains the same
+  ensures sent == old(sent)                     // Sent remains the same
+  ensures trash == old(trash)                   // Trash remains the same
   ensures isValid()
   {
-    userBoxes := userBoxes - {mb};
-
     userboxList := remove(userboxList, mb);
+
+    userBoxes := userBoxes - {mb};
   }
 
   // Adds a new mailbox with name n to set of user-defined mailboxes
@@ -233,7 +233,6 @@ class MailApp {
                                 mb.name == n &&                         // mb is called n
                                 userBoxes == old(userBoxes) + {mb} &&   // the only new mailbox in userBoxes is mb
                                 mb.messages == {}                       // mb has no messages in it
-  ensures systemBoxes() == old(systemBoxes())
   ensures inbox == old(inbox)
   ensures drafts == old(drafts)
   ensures sent == old(sent)
@@ -241,9 +240,9 @@ class MailApp {
   ensures isValid()
   {
     var mb := new Mailbox(n);
-    userBoxes := userBoxes + {mb};
-
     userboxList := Cons(mb, userboxList);
+
+    userBoxes := userBoxes + {mb};
   }
 
 
@@ -256,6 +255,7 @@ class MailApp {
   ensures exists m: Message :: fresh(m) &&                                        // m has just been created
                                drafts.messages == old(drafts.messages) + {m} &&   // the only message added to drafts was m
                                m.sender == s                                      // s is the sender of m
+  ensures drafts.name == old(drafts.name)
   ensures isValid()
   {
     var m := new Message(s);
