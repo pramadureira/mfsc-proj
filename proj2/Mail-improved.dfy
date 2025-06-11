@@ -379,20 +379,19 @@ class MailApp {
   method getMessage(m: Message)
   modifies inbox, spam
   requires isValid()
-  requires m !in allMessages()
-  requires exists i :: 0 <= i < |m.recipients| && m.recipients[i] in userAddresses
+  requires m !in allMessages()                                                        // m is not already in any mailbox
+  requires exists i :: 0 <= i < |m.recipients| && m.recipients[i] in userAddresses    // the owner of the mailbox is one of the receipients of the message m
   
-  ensures if (m.sender in spamFilter) then
-            (spam.messages == old(spam.messages) + {m} &&
-             inbox.messages == old(inbox.messages))
+  ensures if (m.sender in spamFilter) then                                            // if the sender of the message is marked as spam
+            (spam.messages == old(spam.messages) + {m} &&                             // then m is added to the spam mailbox
+             inbox.messages == old(inbox.messages))                                   //      and the inbox messages' remain unchanged
           else
-            (inbox.messages == old(inbox.messages) + {m} &&
-             spam.messages == old(spam.messages))
-  ensures inbox.name == old(inbox.name)
-  ensures spam.name == old(spam.name)
+            (inbox.messages == old(inbox.messages) + {m} &&                           // else m is added to the inbox mailbox
+             spam.messages == old(spam.messages))                                     //      and the spam messages' remain unchanged
+  ensures inbox.name == old(inbox.name)                                               // inbox name remains the same
+  ensures spam.name == old(spam.name)                                                 // spam name remains the same
   ensures isValid()
   {
-    
     if (contains(spamList, m.sender)) {
       spam.messages := spam.messages + {m};
     }
@@ -404,21 +403,40 @@ class MailApp {
   method addToSpam(a: Address)
   modifies this
   requires isValid()
-  requires a !in userAddresses
-  requires a !in spamFilter
-  ensures spamFilter == old(spamFilter) + {a}
-  ensures inbox == old(inbox)
-  ensures drafts == old(drafts)
-  ensures sent == old(sent)
-  ensures trash == old(trash)
-  ensures spam == old(spam)
-  ensures userAddresses == old(userAddresses)
-  ensures userBoxes == old(userBoxes)
+  requires a !in userAddresses                    // a is not an address of the owner of the mailbox
+  requires a !in spamFilter                       // a is not already in the spamFilter
+  ensures spamFilter == old(spamFilter) + {a}     // the only change to the spamFilter is the addition of a to it
+  ensures inbox == old(inbox)                     // inbox remains the same
+  ensures drafts == old(drafts)                   // drafts remains the same
+  ensures sent == old(sent)                       // sent remains the same
+  ensures trash == old(trash)                     // trash remains the same
+  ensures spam == old(spam)                       // spam remains the same
+  ensures userAddresses == old(userAddresses)     // userAddresses remains the same
+  ensures userBoxes == old(userBoxes)             // userBoxes remains the same
   ensures isValid()
   {
     spamList := Cons(a, spamList);
 
     spamFilter := spamFilter + {a};
+  }
+
+  method removeFromSpam(a: Address)
+  modifies this
+  requires isValid()
+  requires a in spamFilter                       // a must be in spamFilter, in order to be removed
+  ensures spamFilter == old(spamFilter) - {a}    // the only change to the spamFilter is the removal of a from it
+  ensures inbox == old(inbox)                    // inbox remains the same
+  ensures drafts == old(drafts)                  // drafts remains the same
+  ensures sent == old(sent)                      // sent remains the same
+  ensures trash == old(trash)                    // trash remains the same
+  ensures spam == old(spam)                      // spam remains the same
+  ensures userAddresses == old(userAddresses)    // userAddresses remains the same
+  ensures userBoxes == old(userBoxes)            // userBoxes remains the same
+  ensures isValid()
+  {
+    spamList := remove(spamList, a);
+
+    spamFilter := spamFilter - {a};
   }
 
   method filterMailbox(mb: Mailbox)
@@ -455,25 +473,6 @@ class MailApp {
 
       oldMessages := oldMessages - {message};
     }
-  }
-
-  method removeFromSpam(a: Address)
-  modifies this
-  requires isValid()
-  requires a in spamFilter
-  ensures spamFilter == old(spamFilter) - {a}
-  ensures inbox == old(inbox)
-  ensures drafts == old(drafts)
-  ensures sent == old(sent)
-  ensures trash == old(trash)
-  ensures spam == old(spam)
-  ensures userAddresses == old(userAddresses)
-  ensures userBoxes == old(userBoxes)
-  ensures isValid()
-  {
-    spamList := remove(spamList, a);
-
-    spamFilter := spamFilter - {a};
   }
 }
 
