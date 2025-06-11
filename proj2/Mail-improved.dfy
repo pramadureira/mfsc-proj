@@ -396,9 +396,12 @@ class MailApp {
   requires a !in userAddresses
   requires a !in spamFilter
   ensures spamFilter == old(spamFilter) + {a}
-  ensures systemBoxes() == old(systemBoxes())
-  //ensures (forall mb :: mb in systemBoxes() ==> mb.messages == old(mb.messages))
-  ensures inbox.messages == old(inbox.messages)
+  ensures (forall mb :: mb in old(userBoxes) ==> mb.messages == old(mb.messages))
+  ensures inbox == old(inbox)
+  ensures drafts == old(drafts)
+  ensures sent == old(sent)
+  ensures trash == old(trash)
+  ensures spam == old(spam)
   ensures userAddresses == old(userAddresses)
   ensures userBoxes == old(userBoxes)
   ensures isValid()
@@ -495,5 +498,6 @@ method test() {
   ma.filterMailbox(ma.inbox);
 
   assert get in ma.spam.messages;
+  assert get !in ma.inbox.messages;
 }
 
