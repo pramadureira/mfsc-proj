@@ -406,6 +406,37 @@ class MailApp {
     spamFilter := spamFilter + {a};
   }
 
+  method filterMailbox(mb: Mailbox)
+  modifies spam, mb
+  requires isValid()
+  requires mb != spam
+
+  ensures forall m :: m in old(mb.messages) && m.sender !in spamFilter ==> m in mb.messages
+  ensures forall m :: m in old(mb.messages) && m.sender in spamFilter ==> (m !in mb.messages && m in spam.messages)
+  ensures isValid()
+  {
+    var oldMessages := mb.messages;
+
+    while oldMessages != {}
+      decreases oldMessages
+      invariant oldMessages <= mb.messages
+      invariant (forall m :: m in old(mb.messages) - oldMessages && m.sender !in spamFilter ==> m in mb.messages)
+      invariant (forall m :: m in old(mb.messages) - oldMessages && m.sender in spamFilter ==> m !in mb.messages && m in spam.messages)
+    {
+      var message :| message in oldMessages;
+      if (contains(spamList, message.sender)) {
+        if (message !in spam.messages) {
+          moveMessage(message, mb, spam);
+        }
+        else {
+          mb.remove(message);
+        }
+      }
+
+      oldMessages := oldMessages - {message};
+    }
+  }
+
   method removeFromSpam(a: Address)
   modifies this
   requires isValid()
