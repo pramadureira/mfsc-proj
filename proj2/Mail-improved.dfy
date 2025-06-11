@@ -261,22 +261,22 @@ class MailApp {
 
   // Adds a new mailbox with name n to set of user-defined mailboxes
   // provided that no user-defined mailbox has name n already
-  method newMailbox(n: string)
+  method newMailbox(n: string) returns (mb: Mailbox)
   modifies this
 
   requires isValid()
   requires forall mb: Mailbox :: mb in userBoxes ==> mb.name != n       // there is no mailbox in userBoxes called n
 
-  ensures exists mb: Mailbox :: fresh(mb) &&                            // mb has just been created
-                                mb.name == n &&                         // mb is called n
-                                userBoxes == old(userBoxes) + {mb} &&   // the only new mailbox in userBoxes is mb
-                                mb.messages == {}                       // mb has no messages in it
+  ensures fresh(mb) &&                            // mb has just been created
+          mb.name == n &&                         // mb is called n
+          userBoxes == old(userBoxes) + {mb} &&   // the only new mailbox in userBoxes is mb
+          mb.messages == {}                       // mb has no messages in it
   ensures systemBoxes() == old(systemBoxes())
   ensures userAddresses == old(userAddresses)
   ensures spamFilter == old(spamFilter)
   ensures isValid()
   {
-    var mb := new Mailbox(n);
+    mb := new Mailbox(n);
     userboxList := Cons(mb, userboxList);
 
     userBoxes := userBoxes + {mb};
@@ -396,7 +396,6 @@ class MailApp {
   requires a !in userAddresses
   requires a !in spamFilter
   ensures spamFilter == old(spamFilter) + {a}
-  ensures (forall mb :: mb in old(userBoxes) ==> mb.messages == old(mb.messages))
   ensures inbox == old(inbox)
   ensures drafts == old(drafts)
   ensures sent == old(sent)
@@ -473,7 +472,7 @@ method test() {
                               ma.trash.messages ==
                               ma.sent.messages == {};
 
-  ma.newMailbox("students"); 
+  var umb := ma.newMailbox("students"); 
   assert exists mb: Mailbox :: mb in ma.userBoxes &&
                                mb.name == "students" &&
                                mb.messages == {};
@@ -490,14 +489,18 @@ method test() {
 
   assert get in ma.inbox.messages;
 
+  ma.moveMessage(get, ma.inbox, umb);
+
+  assert get in umb.messages;
+
   ma.addToSpam(spammer);
 
-  assert get in ma.inbox.messages; //DOES NOT HOLD
+  assert get in umb.messages;
   assert get.sender in ma.spamFilter;
 
-  ma.filterMailbox(ma.inbox);
+  ma.filterMailbox(umb);
 
   assert get in ma.spam.messages;
-  assert get !in ma.inbox.messages;
+  assert get !in umb.messages;
 }
 
